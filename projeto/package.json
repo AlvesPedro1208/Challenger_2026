@@ -1,0 +1,10 @@
+{
+  "name": "jornada-viva",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "app",
+    "demo-server",
+    "shared"
+  ]
+}

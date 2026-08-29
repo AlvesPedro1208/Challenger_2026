@@ -8,3 +8,10 @@ CLAUDE.md
 
 # Estado local do vault do Obsidian (workspace, cache, plugins locais)
 KB_project/.obsidian/
+
+# Dependencias e artefatos de build
+node_modules/
+projeto/app/.expo/
+projeto/app/dist/
+projeto/demo-server/dist/
+*.tsbuildinfo
