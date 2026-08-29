@@ -56,9 +56,9 @@ describe('reduceEvent', () => {
 
   it('updates bus position and ETAs from telemetry', () => {
     const state = runUntil((e) => e.type === 'BUS_TELEMETRY');
-    expect(state.bus.position?.lat).toBeCloseTo(-23.5102);
-    expect(state.bus.position?.lng).toBeCloseTo(-46.5748);
-    expect(state.bus.etaNextStopMin).toBe(165);
+    expect(state.bus.position?.lat).toBeCloseTo(-23.4778);
+    expect(state.bus.position?.lng).toBeCloseTo(-46.5729);
+    expect(state.bus.etaNextStopMin).toBe(176);
     expect(state.bus.etaDestinationIso).toBe('2026-09-14T06:10:00-03:00');
   });
 
@@ -70,12 +70,12 @@ describe('reduceEvent', () => {
 
   it('keeps approaching and dwell mutually exclusive', () => {
     const approaching = runUntil((e) => e.type === 'STOP_APPROACHING');
-    expect(approaching.approachingStop).toEqual({ stopId: 'aparecida', inMinutes: 8 });
+    expect(approaching.approachingStop).toEqual({ stopId: 'stop-aparecida', inMinutes: 8 });
     expect(approaching.dwell).toBeNull();
 
     const dwelling = runUntil((e) => e.type === 'STOP_DWELL');
     expect(dwelling.approachingStop).toBeNull();
-    expect(dwelling.dwell).toEqual({ stopId: 'aparecida', dwellMinutes: 20 });
+    expect(dwelling.dwell).toEqual({ stopId: 'stop-aparecida', dwellMinutes: 20 });
   });
 
   it('finishes the full scenario arrived at Novo Rio', () => {
@@ -107,13 +107,13 @@ describe('useJourneyStore', () => {
     hydrateBootstrap({
       trip: {
         id: 'sp-rio-2230',
-        origin: 'Sao Paulo (Tiete)',
-        destination: 'Rio de Janeiro (Novo Rio)',
+        origin: 'São Paulo (Terminal Tietê)',
+        destination: 'Rio de Janeiro (Terminal Novo Rio)',
         departureIso: '2026-09-13T22:30:00-03:00',
         arrivalIso: '2026-09-14T06:10:00-03:00',
-        company: 'Viacao Cometa',
-        busClass: 'Semi-leito',
-        seat: '17',
+        company: 'Viação Aurora',
+        busClass: 'Semi Leito',
+        seat: '28',
         platform: '45',
       },
     });

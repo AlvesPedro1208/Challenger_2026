@@ -34,25 +34,28 @@ const ETA_DELAYED = at('06:35', true);
 // [afterSec, simTime, nextDay, lat, lng, speedKmh, heading, etaNextStopMin, etaDestinationIso]
 type TelemetryRow = [number, string, boolean, number, number, number, number, number, string];
 
-// Sampled along the Via Dutra between Terminal Tiete and Novo Rio.
+// Sampled on the Via Dutra polyline (see demo-server/src/data/route.ts) between
+// Terminal Tiete and Novo Rio. etaNextStopMin counts minutes to the next
+// support stop (Aparecida at 01:36, then Resende at 03:40); once no stops
+// remain it counts minutes to the destination.
 const dutraTelemetry: TelemetryRow[] = [
-  [62, '22:40', false, -23.5102, -46.5748, 52, 68, 165, ETA_ON_TIME],
-  [68, '23:00', false, -23.4291, -46.483, 78, 62, 150, ETA_ON_TIME],
-  [74, '23:20', false, -23.3552, -46.319, 90, 74, 132, ETA_ON_TIME],
-  [80, '23:45', false, -23.3048, -46.0452, 92, 79, 110, ETA_ON_TIME],
-  [86, '00:05', true, -23.2113, -45.9068, 88, 58, 92, ETA_ON_TIME],
-  [92, '00:25', true, -23.1618, -45.7952, 91, 64, 75, ETA_ON_TIME],
-  [100, '00:45', true, -23.0637, -45.6418, 42, 71, 68, ETA_DELAYED],
-  [106, '01:05', true, -22.9761, -45.5104, 87, 54, 40, ETA_DELAYED],
-  [112, '01:25', true, -22.8846, -45.2812, 84, 59, 12, ETA_DELAYED],
-  [128, '02:00', true, -22.8008, -45.1934, 86, 56, 275, ETA_DELAYED],
-  [134, '02:30', true, -22.6653, -45.0089, 90, 61, 245, ETA_DELAYED],
-  [140, '03:10', true, -22.5311, -44.7722, 88, 72, 205, ETA_DELAYED],
-  [146, '03:50', true, -22.4747, -44.4468, 85, 81, 165, ETA_DELAYED],
+  [62, '22:40', false, -23.4778, -46.5729, 52, 57, 176, ETA_ON_TIME],
+  [68, '23:00', false, -23.4291, -46.483, 78, 62, 156, ETA_ON_TIME],
+  [74, '23:20', false, -23.3945, -46.321, 90, 73, 136, ETA_ON_TIME],
+  [80, '23:45', false, -23.3048, -46.0452, 92, 79, 111, ETA_ON_TIME],
+  [86, '00:05', true, -23.2113, -45.9068, 88, 58, 91, ETA_ON_TIME],
+  [92, '00:25', true, -23.1618, -45.7952, 91, 64, 71, ETA_ON_TIME],
+  [100, '00:45', true, -23.0637, -45.6418, 42, 71, 51, ETA_DELAYED],
+  [106, '01:05', true, -22.9761, -45.5104, 87, 54, 31, ETA_DELAYED],
+  [112, '01:25', true, -22.8846, -45.2812, 84, 59, 11, ETA_DELAYED],
+  [128, '02:00', true, -22.8008, -45.1934, 86, 56, 100, ETA_DELAYED],
+  [134, '02:30', true, -22.6653, -45.0089, 90, 61, 70, ETA_DELAYED],
+  [140, '03:10', true, -22.5311, -44.7722, 88, 72, 30, ETA_DELAYED],
+  [146, '03:40', true, -22.4708, -44.4512, 25, 78, 0, ETA_DELAYED],
   [152, '04:30', true, -22.5386, -44.1032, 87, 86, 125, ETA_DELAYED],
   [158, '05:20', true, -22.6423, -43.8878, 82, 96, 75, ETA_DELAYED],
   [164, '05:55', true, -22.7461, -43.6997, 76, 101, 40, ETA_DELAYED],
-  [170, '06:25', true, -22.8983, -43.2093, 18, 118, 5, ETA_DELAYED],
+  [170, '06:25', true, -22.8983, -43.2093, 18, 118, 9, ETA_DELAYED],
 ];
 
 const telemetrySteps: ScenarioStep[] = dutraTelemetry.map(
@@ -86,7 +89,7 @@ const scriptedSteps: ScenarioStep[] = [
     riskPct: 38,
     canRebook: true,
     rebookFeeBRL: 20,
-    refundDeadlineIso: at('19:30'),
+    refundDeadlineIso: at('21:30'),
     refundRetentionPct: 5,
   }),
 
@@ -117,13 +120,25 @@ const scriptedSteps: ScenarioStep[] = [
   step(115, {
     type: 'STOP_APPROACHING',
     at: at('01:28', true),
-    stopId: 'aparecida',
+    stopId: 'stop-aparecida',
     inMinutes: 8,
   }),
   step(120, {
     type: 'STOP_DWELL',
     at: at('01:36', true),
-    stopId: 'aparecida',
+    stopId: 'stop-aparecida',
+    dwellMinutes: 20,
+  }),
+  step(144, {
+    type: 'STOP_APPROACHING',
+    at: at('03:32', true),
+    stopId: 'stop-resende',
+    inMinutes: 8,
+  }),
+  step(148, {
+    type: 'STOP_DWELL',
+    at: at('03:40', true),
+    stopId: 'stop-resende',
     dwellMinutes: 20,
   }),
 

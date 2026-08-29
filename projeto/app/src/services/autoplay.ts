@@ -11,6 +11,7 @@ export interface AutoplayOptions {
 
 let timers: ReturnType<typeof setTimeout>[] = [];
 let running = false;
+let pendingSteps = 0;
 
 /**
  * Plays the embedded scenario against the same applyEvent used by the WS
@@ -22,18 +23,28 @@ export function startAutoplay(options: AutoplayOptions = {}): void {
 
   stopAutoplay();
   running = true;
+  pendingSteps = scenario.steps.length;
   useJourneyStore.getState().setConnection('autoplay');
 
   timers = scenario.steps.map((step) =>
     setTimeout(() => {
       useJourneyStore.getState().applyEvent(step.event);
+      pendingSteps -= 1;
+      if (pendingSteps <= 0) {
+        running = false;
+      }
     }, step.afterMs / speed),
   );
+
+  if (pendingSteps === 0) {
+    running = false;
+  }
 }
 
 export function stopAutoplay(): void {
   timers.forEach(clearTimeout);
   timers = [];
+  pendingSteps = 0;
   running = false;
 }
 
