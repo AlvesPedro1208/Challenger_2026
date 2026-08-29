@@ -2,8 +2,11 @@ import { create } from 'zustand';
 
 import type {
   BusPosition,
+  DailyDelayPoint,
   DemoEvent,
   DemoPhase,
+  IndoorMap,
+  RouteStats,
   Stop,
   Ticket,
   TrafficSeverity,
@@ -62,6 +65,9 @@ export interface JourneySnapshot {
   trip: Trip | null;
   ticket: Ticket | null;
   stops: Stop[];
+  stats: RouteStats | null;
+  indoorMap: IndoorMap | null;
+  dailySeries: DailyDelayPoint[];
   risk: RiskState | null;
   trafficAlert: TrafficAlertState | null;
   platform: PlatformState;
@@ -77,6 +83,9 @@ export interface BootstrapData {
   trip?: Trip | null;
   ticket?: Ticket | null;
   stops?: Stop[];
+  stats?: RouteStats | null;
+  indoorMap?: IndoorMap | null;
+  dailySeries?: DailyDelayPoint[];
   serverTimeIso?: string;
 }
 
@@ -93,6 +102,9 @@ export const initialJourneyState: JourneySnapshot = {
   trip: null,
   ticket: null,
   stops: [],
+  stats: null,
+  indoorMap: null,
+  dailySeries: [],
   risk: null,
   trafficAlert: null,
   platform: { current: null, pendingChange: null },
@@ -232,6 +244,9 @@ export const useJourneyStore = create<JourneyStore>((set) => ({
       trip: data.trip ?? state.trip,
       ticket: data.ticket ?? state.ticket,
       stops: data.stops ?? state.stops,
+      stats: data.stats ?? state.stats,
+      indoorMap: data.indoorMap ?? state.indoorMap,
+      dailySeries: data.dailySeries ?? state.dailySeries,
       clockIso: data.serverTimeIso ?? state.clockIso,
     })),
 
@@ -245,6 +260,9 @@ export const selectClockIso = (s: JourneyStore): string | null => s.clockIso;
 export const selectTrip = (s: JourneyStore): Trip | null => s.trip;
 export const selectTicket = (s: JourneyStore): Ticket | null => s.ticket;
 export const selectStops = (s: JourneyStore): Stop[] => s.stops;
+export const selectStats = (s: JourneyStore): RouteStats | null => s.stats;
+export const selectIndoorMap = (s: JourneyStore): IndoorMap | null => s.indoorMap;
+export const selectDailySeries = (s: JourneyStore): DailyDelayPoint[] => s.dailySeries;
 export const selectRisk = (s: JourneyStore): RiskState | null => s.risk;
 export const selectTrafficAlert = (s: JourneyStore): TrafficAlertState | null => s.trafficAlert;
 export const selectPlatform = (s: JourneyStore): PlatformState => s.platform;

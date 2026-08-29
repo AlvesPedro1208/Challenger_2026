@@ -1,3 +1,12 @@
+import {
+  DAILY_DELAY_SERIES,
+  DEMO_TICKET,
+  DEMO_TRIP,
+  ROUTE_STATS,
+  STOPS,
+  TIETE_INDOOR_MAP,
+} from '@jornada/shared';
+
 import { httpBaseUrl } from '@/services/connection';
 import { hydrateFromCache, saveJourneyCache } from '@/state/persistence';
 import type { BootstrapData } from '@/state/store';
@@ -9,24 +18,12 @@ export type BootstrapSource = 'server' | 'cache' | 'fixture';
 
 /** Matches the sp-rio-nightly scenario so the app makes sense without a server. */
 const fixtureBootstrap: BootstrapData = {
-  trip: {
-    id: 'sp-rio-2230',
-    origin: 'São Paulo (Terminal Tietê)',
-    destination: 'Rio de Janeiro (Terminal Novo Rio)',
-    departureIso: '2026-09-13T22:30:00-03:00',
-    arrivalIso: '2026-09-14T06:10:00-03:00',
-    company: 'Viação Aurora',
-    busClass: 'Semi Leito',
-    seat: '28',
-    platform: '45',
-  },
-  ticket: {
-    tripId: 'sp-rio-2230',
-    passengerName: 'Pedro Alves',
-    seat: '28',
-    qrPayload: 'JV-sp-rio-2230-28',
-  },
-  stops: [],
+  trip: DEMO_TRIP,
+  ticket: DEMO_TICKET,
+  stops: STOPS,
+  stats: ROUTE_STATS,
+  indoorMap: TIETE_INDOOR_MAP,
+  dailySeries: DAILY_DELAY_SERIES,
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -69,13 +66,42 @@ function isValidStop(value: unknown): boolean {
   );
 }
 
+function isValidStats(value: unknown): boolean {
+  if (!isRecord(value) || !isRecord(value.last60d)) return false;
+  const { riskPct, avgDelayMin, sampleSize, histogram } = value.last60d;
+  return (
+    typeof riskPct === 'number' &&
+    typeof avgDelayMin === 'number' &&
+    typeof sampleSize === 'number' &&
+    Array.isArray(histogram)
+  );
+}
+
+function isValidIndoorMap(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.viewBox === 'string' &&
+    Array.isArray(value.platforms) &&
+    Array.isArray(value.gates) &&
+    Array.isArray(value.services)
+  );
+}
+
+function isValidDailyPoint(value: unknown): boolean {
+  return isRecord(value) && typeof value.date === 'string' && typeof value.delayMin === 'number';
+}
+
 /** Minimal structural validation of the /api/bootstrap payload. */
 export function parseBootstrapData(data: unknown): BootstrapData | null {
   if (!isRecord(data)) return null;
-  const { trip, ticket, stops, serverTimeIso } = data;
+  const { trip, ticket, stops, stats, indoorMap, dailySeries, serverTimeIso } = data;
   if (trip != null && !isValidTrip(trip)) return null;
   if (ticket != null && !isValidTicket(ticket)) return null;
   if (stops != null && (!Array.isArray(stops) || !stops.every(isValidStop))) return null;
+  if (stats != null && !isValidStats(stats)) return null;
+  if (indoorMap != null && !isValidIndoorMap(indoorMap)) return null;
+  if (dailySeries != null && (!Array.isArray(dailySeries) || !dailySeries.every(isValidDailyPoint)))
+    return null;
   if (serverTimeIso != null && typeof serverTimeIso !== 'string') return null;
   return data as BootstrapData;
 }

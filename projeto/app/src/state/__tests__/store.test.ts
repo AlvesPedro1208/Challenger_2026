@@ -1,10 +1,17 @@
 import { describe, expect, it } from '@jest/globals';
 
 import type { DemoEvent } from '@jornada/shared';
-import { spRioScenario } from '@jornada/shared';
+import { DAILY_DELAY_SERIES, ROUTE_STATS, spRioScenario, TIETE_INDOOR_MAP } from '@jornada/shared';
 
 import type { JourneySnapshot } from '../store';
-import { initialJourneyState, reduceEvent, useJourneyStore } from '../store';
+import {
+  initialJourneyState,
+  reduceEvent,
+  selectDailySeries,
+  selectIndoorMap,
+  selectStats,
+  useJourneyStore,
+} from '../store';
 
 const scenarioEvents: DemoEvent[] = spRioScenario.steps.map((step) => step.event);
 
@@ -122,6 +129,30 @@ describe('useJourneyStore', () => {
     const state = useJourneyStore.getState();
     expect(state.trip?.id).toBe('sp-rio-2230');
     expect(state.clockIso).toBe('2026-09-13T20:00:00-03:00');
+
+    reset();
+  });
+
+  it('hydrates stats, indoor map and daily series exposed by the selectors', () => {
+    const { hydrateBootstrap, reset } = useJourneyStore.getState();
+    reset();
+
+    expect(selectStats(useJourneyStore.getState())).toBeNull();
+    expect(selectIndoorMap(useJourneyStore.getState())).toBeNull();
+    expect(selectDailySeries(useJourneyStore.getState())).toEqual([]);
+
+    hydrateBootstrap({
+      stats: ROUTE_STATS,
+      indoorMap: TIETE_INDOOR_MAP,
+      dailySeries: DAILY_DELAY_SERIES,
+    });
+
+    const state = useJourneyStore.getState();
+    expect(selectStats(state)).toEqual(ROUTE_STATS);
+    expect(selectStats(state)?.last60d.sampleSize).toBe(240);
+    expect(selectIndoorMap(state)).toEqual(TIETE_INDOOR_MAP);
+    expect(selectIndoorMap(state)?.platforms).toHaveLength(10);
+    expect(selectDailySeries(state)).toHaveLength(60);
 
     reset();
   });
