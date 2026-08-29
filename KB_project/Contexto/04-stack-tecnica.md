@@ -1,39 +1,21 @@
 # Stack Técnica
 
-> Decisões registradas; itens marcados como "proposta" ainda dependem de aval do time.
+## Decidido (brainstorm 29/08/2026 — ver Specs/2026-08-29-spec-mvp-demo.md)
 
-## Decidido
+- **Framework**: React Native com **Expo** (managed + dev build se necessário), TypeScript estrito, Expo Router.
+- **Alvos**: celular físico do time + iOS Simulator no MacBook.
+- **Arquitetura da demo**: painel de controle web separado → `demo-server` (Node + TS,
+  Fastify + WebSocket) dirige o app ao vivo; **fallback auto-play** embutido no app.
+- **APIs**: híbrido — mapa real (`react-native-maps` com Apple Maps no iOS, sem billing;
+  polylines pré-computadas) + dados dinâmicos simulados (datasets pré-gerados: telemetria,
+  pontualidade 60d, estabelecimentos estilo Places).
+- **Estado**: Zustand alimentada por eventos WS; cache offline para bilhete QR + itinerário.
+- **Notificações**: `expo-notifications` locais disparadas por eventos.
+- **Estrutura**: monorepo em `projeto/` → `app/` · `demo-server/` (inclui painel) · `shared/` (tipos de eventos).
+- **Qualidade**: ESLint 9 flat config + quality gates do toolkit (warning → error ao zerar).
 
-- **Framework**: **React Native** (decisão do time).
-- **Alvos de execução no dia da apresentação (Next)**:
-  1. Celular físico do time;
-  2. Simulador/emulador no MacBook.
-- **Ambiente de dev**: macOS (Darwin), Node v25 + npm, Homebrew disponível.
+## Observações
 
-## Propostas (validar antes do setup)
-
-- **Expo (managed workflow)**: caminho recomendado para RN em 2026 — roda no iOS
-  Simulator do MacBook e no celular físico via Expo Go/dev build sem fricção; acesso
-  fácil a localização, push, mapas; EAS para builds. Alternativa: React Native CLI
-  (mais controle nativo — necessário se formos usar módulos nativos exóticos tipo
-  beacon/BLE avançado).
-- **Linguagem**: TypeScript estrito.
-- **Navegação**: Expo Router ou React Navigation.
-- **Mapas**: react-native-maps (Google Maps) — necessário para Módulos 2, 3 e 5;
-  mapa indoor 2D pode ser SVG/vetorial custom sobreposto.
-- **APIs externas citadas no escopo**: Google Maps (rotas/tráfego), Google Places
-  (estabelecimentos em paradas e destino).
-- **Backend/simulação**: a definir com o time — para a demo do Next, telemetria de
-  ônibus e eventos de terminal provavelmente serão **simulados** (mock server ou
-  Firebase), já que não teremos GPS real de frota.
-- **Estado**: Zustand ou React Query (server state) — decidir no setup.
-- **Qualidade**: ESLint 9 (flat config) + TypeScript, seguindo o padrão de quality
-  gates do toolkit (regra nova nasce como warning → promove a error ao zerar).
-
-## Restrições e observações
-
-- Demo precisa funcionar **offline-friendly** (Módulo 6) — pensar cache local desde o início.
-- iOS Simulator não simula bem GPS em movimento/BLE — planejar "modo demo" com
-  localização cenografada (mock location provider) para apresentação.
-- O repositório do app será criado dentro deste repo (monorepo simples) — estrutura a
-  definir na fase de setup do fluxo.
+- Demo precisa sobreviver sem rede (modo avião na frente da banca é parte do roteiro).
+- iOS Simulator não simula GPS em movimento — localização vem do Scenario Engine, nunca do GPS real.
+- Ambiente: macOS, Node v25, npm, Homebrew.

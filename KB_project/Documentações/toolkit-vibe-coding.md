@@ -14,13 +14,13 @@ principal **planeja, decide e delega; nunca implementa sozinha**.
 
 | # | Pilar | Status no projeto |
 |---|---|---|
-| 1 | **Superpowers** (plugin oficial de skills de processo) | ✅ ADOTADO — já instalado (v6.3.0, escopo user) |
-| 2 | **Orquestração de subagentes** em ondas paralelas | ✅ ADOTADO — regra em `templates/rules/` do toolkit será copiada para o CLAUDE.md/`.claude/` |
-| 3 | RTK (proxy de tokens) | ❌ Não usaremos — é padrão documentado, não binário público |
-| 4 | Personas Ponytail (YAGNI) + Caveman (comunicação seca) | ⚠️ Opcional — avaliar; princípios YAGNI entram no CLAUDE.md mesmo sem o plugin |
-| 5 | **Quality gates** ESLint (warning → error como migração) | ✅ ADOTADO — no setup do app RN |
-| 6 | Graphify (grafo de conhecimento do código) | ⚠️ Opcional — só se a base crescer muito |
-| 7 | **Memória em 2 camadas** (índice `MEMORY.md` + cofre longo prazo) | ✅ ADOTADO — a memória do Claude Code + **este KB_project faz o papel do cofre** (no lugar do Obsidian) |
+| 1 | **Superpowers** (plugin oficial de skills de processo) | ADOTADO — já instalado (v6.3.0, escopo user) |
+| 2 | **Orquestração de subagentes** em ondas paralelas | ADOTADO — regra em `templates/rules/` do toolkit será copiada para o CLAUDE.md/`.claude/` |
+| 3 | RTK (proxy de tokens) | Não usaremos — é padrão documentado, não binário público |
+| 4 | Personas Ponytail (YAGNI) + Caveman (comunicação seca) | Opcional — avaliar; princípios YAGNI entram no CLAUDE.md mesmo sem o plugin |
+| 5 | **Quality gates** ESLint (warning → error como migração) | ADOTADO — no setup do app RN |
+| 6 | Graphify (grafo de conhecimento do código) | Opcional — só se a base crescer muito |
+| 7 | **Memória em 2 camadas** (índice `MEMORY.md` + cofre longo prazo) | ADOTADO — a memória do Claude Code + **este KB_project faz o papel do cofre** (no lugar do Obsidian) |
 
 Extras do toolkit: **Context7** (MCP de docs atualizadas de libs — útil para
 React Native/Expo, avaliar instalação), agent-browser e Chrome DevTools MCP (pouco

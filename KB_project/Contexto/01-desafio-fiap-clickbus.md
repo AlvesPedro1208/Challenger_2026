@@ -30,7 +30,7 @@ alunos e professores. Turma: 3ESOA. Período: 1º semestre de 2026.
 | Hugo Helito | Coordenador de Data Science |
 | Juliana Chaves | Cientista de Dados |
 
-⚠️ **Insight estratégico**: o painel é 100% de dados/IA. Soluções com inteligência real
+**Insight estratégico**: o painel é 100% de dados/IA. Soluções com inteligência real
 (previsão, personalização, dados em tempo real) tendem a pesar mais na avaliação do que
 apps "bonitos porém burros".
 

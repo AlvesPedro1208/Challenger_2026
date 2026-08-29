@@ -1,6 +1,6 @@
 # Produto — Ideia Geral (ESCOPO CANÔNICO)
 
-> ⚠️ Este arquivo é a **fonte única de verdade do escopo**. Vem do `ideia_geral.txt`
+> Atenção: este arquivo é a **fonte única de verdade do escopo**. Vem do `ideia_geral.txt`
 > do time. Qualquer feature fora daqui (inclusive as do deck legado "Embarque Vivo")
 > NÃO faz parte do projeto até ser adicionada aqui explicitamente.
 

@@ -39,7 +39,7 @@ da experiência.
 - **Card de viagem "hero"**: rota em destaque ("São Paulo → Rio de Janeiro"), data/hora
   em rosa, terminal, poltrona/classe/serviço, QR Code em card branco, status pill verde
   ("Tudo certo para sua viagem!").
-- **Banner de alerta no topo**: fundo rosa, ícone ⚠, mensagem curta e ação
+- **Banner de alerta no topo**: fundo rosa, ícone de alerta, mensagem curta e ação
   ("Plataforma alterada 45 → 48" + "Rota recalculada · 9 min").
 - **Mapa dark** com rota tracejada em rosa/roxo, plataforma destacada em pill rosa,
   ícones de serviços (banheiro, alimentação) e numeração de plataformas na lateral.
