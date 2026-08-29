@@ -53,3 +53,16 @@ Modelos (`shared/src/models.ts`): `Trip`, `Ticket`, `BusPosition`, `RouteStats`,
 | 6 | T15, T16 | Revisao e ensaio |
 
 Progresso: mover os cards em `Pendente/` -> `Em Execução/` -> `Em Review/` -> `Done/`.
+
+## Dividas registradas pela revisao da Onda 1 (resolver nas ondas seguintes)
+
+- OBRIGATORIO em T08/T11: eliminar strings pseudo-dinamicas hardcoded dos placeholders
+  (plataforma, horarios em index.tsx e terminal.tsx) — todo dado dinamico via store/eventos.
+- Em T05: tipar o hub WS com DemoEvent do shared e declarar dependencia @jornada/shared
+  no demo-server; adicionar teste do /ws (registro, broadcast, clientCount).
+- Na Onda 4 (qualquer tela): corrigir copy PT sem acentuacao dos placeholders;
+  Card.tsx usar StyleProp<ViewStyle>.
+- Limpeza leve (Onda 6/T16): remover ruido de template do app (LICENSE da Expo,
+  .vscode/, assets nao usados, icon 799KB), avaliar remocao de deps de template sem uso.
+- Nota: ClockSetEvent tem `at` e `isoTime` redundantes — engine (T05) deve tratar
+  `isoTime` como fonte e `at` como carimbo do envio (documentar no codigo do engine).
