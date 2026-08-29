@@ -66,3 +66,18 @@ Progresso: mover os cards em `Pendente/` -> `Em Execução/` -> `Em Review/` -> 
   .vscode/, assets nao usados, icon 799KB), avaliar remocao de deps de template sem uso.
 - Nota: ClockSetEvent tem `at` e `isoTime` redundantes — engine (T05) deve tratar
   `isoTime` como fonte e `at` como carimbo do envio (documentar no codigo do engine).
+
+## Loop de correcao da Onda 2 (revisao reprovou T06 em qualidade)
+
+Correcao T06-fix (despachar APOS T05 concluir, para evitar colisao de arquivos):
+- Unificar o trip canonico em TODAS as fontes: viagem noturna 22:30 -> 06:10 (13->14/09),
+  Viacao Aurora (ficticia; nao usar marca real), Semi Leito, poltrona 28, plataforma 45,
+  qrPayload terminando em -28 (casar com seat). Alinhar: demo-server/src/data/trip.ts,
+  app/src/services/bootstrap.ts (fixture) e o roteiro em shared/src/scenario.ts.
+- scenario.ts: stopId 'stop-aparecida' (casar com dataset); telemetria dos passos 62s/74s
+  sobre a polyline real; refundDeadlineIso futuro em relacao ao RISK_UPDATE; semantica de
+  etaNextStopMin consistente (minutos ate a proxima parada; destino quando nao ha mais
+  paradas) e incluir Resende como segunda parada com APPROACHING/DWELL.
+- autoplay.ts: marcar running=false ao terminar o roteiro.
+- bootstrap.ts (app): validacao minima de campos do BootstrapData.
+- Rodar TODAS as suites (shared/app/demo-server) apos o ajuste, incluindo as de T05.
