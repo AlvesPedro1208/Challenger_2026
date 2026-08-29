@@ -6,3 +6,6 @@ tookit_claude/
 
 # Configuração local do Claude Code
 .claude/settings.local.json
+
+# Estado local do vault do Obsidian (workspace, cache, plugins locais)
+KB_project/.obsidian/
