@@ -1,24 +1,18 @@
 # Challenger 2026
 
-Repositório do projeto Challenger 2026.
+Repositório do projeto do time para o FIAP Challenger 2026 (cliente: ClickBus).
 
 ## Estrutura
 
 ```
-KB_project/
-├── Agentes/          # Definições de agentes
-├── Documentações/    # Documentação do projeto
-├── Planejamento/     # Quadro de planejamento
-│   ├── Pendente/
-│   ├── Em Execução/
-│   ├── Em Review/
-│   └── Done/
-├── Skills/           # Skills do projeto
+KB_project/           # Knowledge base do projeto (vault Obsidian)
+├── Contexto/         # Desafio, escopo do produto, design e stack
+├── Documentações/    # Documentação e specs
+├── Planejamento/     # Quadro kanban (Pendente / Em Execução / Em Review / Done)
+├── Agentes/          # Papéis e divisão de trabalho
+├── Skills/           # Processos do time
 └── Templates/        # Templates reutilizáveis
+projeto/              # Código do aplicativo
 ```
 
-## Notas
-
-- `tookit_claude/` não é versionado aqui: é um clone local do
-  [vibe-coding-toolkit](https://github.com/soumatheusgomes/vibe-coding-toolkit).
-- `.claude/settings.local.json` é configuração local e fica fora do versionamento.
+Ferramentas locais de desenvolvimento ficam fora do versionamento (ver `.gitignore`).

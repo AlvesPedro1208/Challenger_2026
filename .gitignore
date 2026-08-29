@@ -1,11 +1,10 @@
 # macOS
 .DS_Store
 
-# Ferramentas de terceiros clonadas localmente
+# Ferramentas locais de desenvolvimento (uso interno do time)
 tookit_claude/
-
-# Configuração local do Claude Code
-.claude/settings.local.json
+.claude/
+CLAUDE.md
 
 # Estado local do vault do Obsidian (workspace, cache, plugins locais)
 KB_project/.obsidian/
