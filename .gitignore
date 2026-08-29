@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Ferramentas de terceiros clonadas localmente
+tookit_claude/
+
+# Configuração local do Claude Code
+.claude/settings.local.json
