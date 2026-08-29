@@ -7,7 +7,17 @@ import fastifyStatic from "@fastify/static";
 import websocket from "@fastify/websocket";
 import { registerWsHub } from "./ws/hub";
 import { bootstrapRoutes } from "./routes/bootstrap";
+import { commandRoutes } from "./routes/commands";
 import { healthRoutes } from "./routes/health";
+import { SimClock } from "./engine/clock";
+import { ScenarioEngine } from "./engine/engine";
+import { JourneyState } from "./engine/state";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    engine: ScenarioEngine;
+  }
+}
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const panelDir = path.resolve(here, "../panel");
@@ -27,9 +37,24 @@ export async function buildServer(): Promise<FastifyInstance> {
     });
   }
 
-  await app.register(registerWsHub);
+  const state = new JourneyState();
+  const clock = new SimClock();
+
+  // Applied directly on the root instance so the wsHub decoration is not
+  // trapped in an encapsulated plugin scope.
+  await registerWsHub(state)(app);
+
+  const engine = new ScenarioEngine({
+    broadcast: (event) => app.wsHub.broadcast(event),
+    state,
+    clock,
+  });
+  app.decorate("engine", engine);
+  app.addHook("onClose", async () => engine.dispose());
+
   await app.register(healthRoutes, { prefix: "/api" });
-  await app.register(bootstrapRoutes, { prefix: "/api" });
+  await app.register(bootstrapRoutes(clock), { prefix: "/api" });
+  await app.register(commandRoutes(engine), { prefix: "/api" });
 
   return app;
 }
