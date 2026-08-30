@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { Trip } from '@jornada/shared';
 
 import { Card, StatusPill } from '@/components/ui';
+import { cityName, placeComplement } from '@/lib/place';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 import { countdownBetween, formatCountdown, formatDepartureLabel } from './format';
@@ -18,13 +19,23 @@ export function HeroTripCard({ trip, clockIso, platformCurrent, allClear }: Hero
   const countdown = countdownBetween(clockIso, trip.departureIso);
   const platform = platformCurrent ?? trip.platform;
 
+  // The headline carries cities only; the full names ("São Paulo (Terminal Tietê)")
+  // wrap to three or four display-size lines and push the countdown below the fold.
+  const originTerminal = placeComplement(trip.origin);
+  const destinationTerminal = placeComplement(trip.destination);
+  const terminals =
+    originTerminal && destinationTerminal ? `${originTerminal} → ${destinationTerminal}` : null;
+
   return (
     <Card style={styles.card}>
-      <Text style={styles.city}>{trip.origin}</Text>
-      <Text style={styles.city}>
-        <Text style={styles.arrow}>→ </Text>
-        {trip.destination}
+      <Text style={styles.route} numberOfLines={2}>
+        {cityName(trip.origin)} <Text style={styles.arrow}>→</Text> {cityName(trip.destination)}
       </Text>
+      {terminals ? (
+        <Text style={styles.terminals} numberOfLines={2}>
+          {terminals}
+        </Text>
+      ) : null}
 
       <Text style={styles.departure}>{formatDepartureLabel(trip.departureIso)}</Text>
       <Text style={styles.meta}>
@@ -48,12 +59,17 @@ const styles = StyleSheet.create({
   card: {
     padding: spacing.lg,
   },
-  city: {
+  route: {
     ...typography.display,
     color: colors.text.primary,
   },
   arrow: {
     color: colors.text.secondary,
+  },
+  terminals: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
   },
   departure: {
     ...typography.subtitle,
@@ -75,7 +91,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255, 255, 255, 0.16)',
+    borderTopColor: colors.hairline.onDark,
   },
   countdownLabel: {
     ...typography.sectionLabel,

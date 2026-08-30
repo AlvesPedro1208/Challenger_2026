@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Trip } from '@jornada/shared';
 
 import { AlertBanner, Card, PrimaryButton, Screen, StatusPill } from '@/components/ui';
+import { cityName } from '@/lib/place';
 import {
   selectBus,
   selectClockIso,
@@ -139,9 +140,8 @@ export function HomeScreen() {
                   disabled={!risk.canRebook}
                   onPress={() => setRebookVisible(true)}
                 />
-                <PrimaryButton
+                <GhostButton
                   label="Cancelar com reembolso"
-                  variant="purple"
                   onPress={() => setRefundVisible(true)}
                 />
               </View>
@@ -176,6 +176,25 @@ export function HomeScreen() {
         </>
       ) : null}
     </Screen>
+  );
+}
+
+type GhostButtonProps = {
+  label: string;
+  onPress: () => void;
+};
+
+/** Secondary escape hatch: same 44pt target as PrimaryButton, none of its weight. */
+function GhostButton({ label, onPress }: GhostButtonProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.ghostButton, pressed && styles.ghostPressed]}
+    >
+      <Text style={styles.ghostLabel}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -229,8 +248,8 @@ function OnboardSummaryCard({
   return (
     <Card style={styles.blockCard}>
       <Text style={styles.sectionLabel}>{arrived ? 'Viagem concluída' : 'A bordo'}</Text>
-      <Text style={styles.summaryRoute}>
-        {trip.origin} <Text style={styles.arrow}>→</Text> {trip.destination}
+      <Text style={styles.summaryRoute} numberOfLines={2}>
+        {cityName(trip.origin)} <Text style={styles.arrow}>→</Text> {cityName(trip.destination)}
       </Text>
       <Text style={styles.blockBody}>
         Poltrona {trip.seat} · {trip.busClass} · Plataforma {platform}
@@ -257,8 +276,6 @@ function OnboardSummaryCard({
     </Card>
   );
 }
-
-const SKELETON_BONE = 'rgba(255, 255, 255, 0.08)';
 
 function HomeSkeleton() {
   const pulse = useRef(new Animated.Value(0.5)).current;
@@ -363,6 +380,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
+  ghostButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  ghostPressed: {
+    opacity: 0.6,
+  },
+  ghostLabel: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    textDecorationLine: 'underline',
+  },
   skeletonCard: {
     backgroundColor: colors.bg.surface,
     borderRadius: radii.lg,
@@ -373,13 +405,13 @@ const styles = StyleSheet.create({
     width: '72%',
     height: 30,
     borderRadius: radii.sm,
-    backgroundColor: SKELETON_BONE,
+    backgroundColor: colors.bone.onDark,
   },
   skeletonLineNarrow: {
     width: '48%',
     height: 16,
     borderRadius: radii.sm,
-    backgroundColor: SKELETON_BONE,
+    backgroundColor: colors.bone.onDark,
     marginTop: spacing.xs,
   },
   skeletonPillRow: {
@@ -391,12 +423,12 @@ const styles = StyleSheet.create({
     width: 116,
     height: 26,
     borderRadius: radii.pill,
-    backgroundColor: SKELETON_BONE,
+    backgroundColor: colors.bone.onDark,
   },
   skeletonBlock: {
     height: 64,
     borderRadius: radii.md,
-    backgroundColor: SKELETON_BONE,
+    backgroundColor: colors.bone.onDark,
     marginTop: spacing.sm,
   },
 });

@@ -3,14 +3,11 @@ import QRCode from 'react-native-qrcode-svg';
 
 import type { Ticket, Trip } from '@jornada/shared';
 
+import { cityName, placeComplement } from '@/lib/place';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 import { formatDepartureIso } from './formatters';
 import { TicketField } from './TicketField';
-
-const INK = '#1A1A1A';
-const INK_SOFT = '#6B6572';
-const DIVIDER = '#ECE9F1';
 
 type TicketCardProps = {
   trip: Trip;
@@ -20,11 +17,20 @@ type TicketCardProps = {
 
 export function TicketCard({ trip, ticket, platform }: TicketCardProps) {
   const departure = formatDepartureIso(trip.departureIso);
+  const originTerminal = placeComplement(trip.origin);
+  const destinationTerminal = placeComplement(trip.destination);
+  const terminals =
+    originTerminal && destinationTerminal ? `${originTerminal} → ${destinationTerminal}` : null;
 
   return (
     <View style={styles.card}>
       <View style={styles.qrWrap}>
-        <QRCode value={ticket.qrPayload} size={188} backgroundColor="#FFFFFF" color={INK} />
+        <QRCode
+          value={ticket.qrPayload}
+          size={188}
+          backgroundColor={colors.ticket.surface}
+          color={colors.ticket.ink}
+        />
       </View>
 
       <Text style={styles.passenger}>{ticket.passengerName}</Text>
@@ -32,15 +38,22 @@ export function TicketCard({ trip, ticket, platform }: TicketCardProps) {
 
       <View style={styles.divider} />
 
+      {/* Cities only: the full place names truncate inside these half-width columns. */}
       <View style={styles.routeRow}>
         <Text style={styles.routeText} numberOfLines={2}>
-          {trip.origin}
+          {cityName(trip.origin)}
         </Text>
         <Text style={styles.routeArrow}>→</Text>
         <Text style={[styles.routeText, styles.routeRight]} numberOfLines={2}>
-          {trip.destination}
+          {cityName(trip.destination)}
         </Text>
       </View>
+
+      {terminals ? (
+        <Text style={styles.terminals} numberOfLines={2}>
+          {terminals}
+        </Text>
+      ) : null}
 
       {departure ? (
         <Text style={styles.departure}>
@@ -61,7 +74,7 @@ export function TicketCard({ trip, ticket, platform }: TicketCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.ticket.surface,
     borderRadius: radii.xl,
     padding: spacing.lg,
     alignItems: 'stretch',
@@ -72,19 +85,19 @@ const styles = StyleSheet.create({
   },
   passenger: {
     ...typography.title,
-    color: INK,
+    color: colors.ticket.ink,
     textAlign: 'center',
     marginTop: spacing.md,
   },
   company: {
     ...typography.caption,
-    color: INK_SOFT,
+    color: colors.ticket.inkSoft,
     textAlign: 'center',
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: DIVIDER,
+    backgroundColor: colors.ticket.divider,
     marginVertical: spacing.md,
   },
   routeRow: {
@@ -94,7 +107,7 @@ const styles = StyleSheet.create({
   },
   routeText: {
     ...typography.subtitle,
-    color: INK,
+    color: colors.ticket.ink,
     flex: 1,
   },
   routeRight: {
@@ -104,9 +117,15 @@ const styles = StyleSheet.create({
     ...typography.subtitle,
     color: colors.accent.primary,
   },
+  terminals: {
+    ...typography.caption,
+    color: colors.ticket.inkSoft,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
   departure: {
     ...typography.body,
-    color: INK_SOFT,
+    color: colors.ticket.inkSoft,
     textAlign: 'center',
     marginTop: spacing.sm,
   },

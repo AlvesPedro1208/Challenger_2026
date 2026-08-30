@@ -17,7 +17,12 @@ export function ModalSheet({ visible, title, onClose, children }: ModalSheetProp
         <View style={styles.sheet}>
           <Text style={styles.title}>{title}</Text>
           {children}
-          <Pressable onPress={onClose} hitSlop={8} style={styles.closeRow}>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={styles.closeRow}
+          >
             <Text style={styles.closeLabel}>Voltar</Text>
           </Pressable>
         </View>
@@ -30,7 +35,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(11, 8, 16, 0.72)',
+    backgroundColor: colors.overlay.scrim,
     padding: spacing.md,
   },
   sheet: {
@@ -45,7 +50,10 @@ const styles = StyleSheet.create({
   },
   closeRow: {
     alignSelf: 'center',
-    paddingVertical: spacing.xs,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
   },
   closeLabel: {
     ...typography.subtitle,

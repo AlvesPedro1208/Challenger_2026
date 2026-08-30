@@ -1,9 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
-import { radii, spacing } from '@/theme/tokens';
-
-const BONE = '#EEEBF2';
+import { colors, radii, spacing } from '@/theme/tokens';
 
 export function TicketSkeleton() {
   const pulse = useRef(new Animated.Value(0.5)).current;
@@ -35,7 +33,7 @@ export function TicketSkeleton() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.ticket.surface,
     borderRadius: radii.xl,
     padding: spacing.lg,
     alignItems: 'center',
@@ -44,20 +42,20 @@ const styles = StyleSheet.create({
     width: 188,
     height: 188,
     borderRadius: radii.md,
-    backgroundColor: BONE,
+    backgroundColor: colors.bone.onLight,
   },
   lineWide: {
     width: '70%',
     height: 20,
     borderRadius: radii.sm,
-    backgroundColor: BONE,
+    backgroundColor: colors.bone.onLight,
     marginTop: spacing.lg,
   },
   lineNarrow: {
     width: '45%',
     height: 14,
     borderRadius: radii.sm,
-    backgroundColor: BONE,
+    backgroundColor: colors.bone.onLight,
     marginTop: spacing.sm,
   },
   row: {
@@ -71,6 +69,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     borderRadius: radii.sm,
-    backgroundColor: BONE,
+    backgroundColor: colors.bone.onLight,
   },
 });

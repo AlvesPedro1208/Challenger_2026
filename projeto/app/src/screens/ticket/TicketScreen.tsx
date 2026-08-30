@@ -62,7 +62,7 @@ export function TicketScreen() {
       {isOffline ? (
         <View style={styles.offlineRow}>
           <View style={styles.offlineDot} />
-          <Text style={styles.offlineText}>Disponível offline — funciona sem internet</Text>
+          <Text style={styles.offlineText}>Disponível sem internet</Text>
         </View>
       ) : null}
 

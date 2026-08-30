@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { typography } from '@/theme/tokens';
-
-const INK = '#1A1A1A';
-const INK_SOFT = '#6B6572';
+import { colors, typography } from '@/theme/tokens';
 
 type TicketFieldProps = {
   label: string;
@@ -28,11 +25,11 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.sectionLabel,
-    color: INK_SOFT,
+    color: colors.ticket.inkSoft,
   },
   value: {
     ...typography.subtitle,
-    color: INK,
+    color: colors.ticket.ink,
   },
   right: {
     textAlign: 'right',

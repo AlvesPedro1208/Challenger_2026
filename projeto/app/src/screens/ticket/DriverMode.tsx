@@ -11,12 +11,9 @@ import QRCode from 'react-native-qrcode-svg';
 
 import type { Ticket, Trip } from '@jornada/shared';
 
-import { radii, spacing, typography } from '@/theme/tokens';
+import { colors, radii, spacing, typography } from '@/theme/tokens';
 
 import { formatDepartureIso } from './formatters';
-
-const INK = '#1A1A1A';
-const INK_SOFT = '#6B6572';
 
 type DriverModeProps = {
   visible: boolean;
@@ -34,10 +31,15 @@ export function DriverMode({ visible, trip, ticket, platform, onClose }: DriverM
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={styles.root}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.ticket.surface} />
 
         <View style={styles.qrArea}>
-          <QRCode value={ticket.qrPayload} size={qrSize} backgroundColor="#FFFFFF" color={INK} />
+          <QRCode
+            value={ticket.qrPayload}
+            size={qrSize}
+            backgroundColor={colors.ticket.surface}
+            color={colors.ticket.ink}
+          />
         </View>
 
         <View style={styles.details}>
@@ -67,7 +69,7 @@ export function DriverMode({ visible, trip, ticket, platform, onClose }: DriverM
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.ticket.surface,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
@@ -82,11 +84,11 @@ const styles = StyleSheet.create({
   },
   passenger: {
     ...typography.title,
-    color: INK,
+    color: colors.ticket.ink,
   },
   meta: {
     ...typography.subtitle,
-    color: INK_SOFT,
+    color: colors.ticket.inkSoft,
   },
   closeButton: {
     position: 'absolute',
@@ -94,7 +96,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: radii.pill,
     borderWidth: 1.5,
-    borderColor: INK,
+    borderColor: colors.ticket.ink,
     paddingVertical: spacing.sm + 4,
     paddingHorizontal: spacing.xl,
   },
@@ -104,6 +106,6 @@ const styles = StyleSheet.create({
   closeLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: INK,
+    color: colors.ticket.ink,
   },
 });
