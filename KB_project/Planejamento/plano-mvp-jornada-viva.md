@@ -126,3 +126,22 @@ proxima acao (stats e POIs da chegada), jargao "Auto-play" visivel na demo.
 
 Escopos disjuntos: G1 mapa+navegacao · G2 lib+home+bilhete · G3 stats+chegada · G4 primitivos+tokens.
 Pendencia: cityName duplicado (stats/helpers.ts e o novo lib) — deduplicar no T16.
+
+## Estado em 30/08/2026
+
+Concluido: T01-T16 (exceto o ensaio VISUAL), mais 3 ondas de correcao nascidas das revisoes
+(qualidade da Onda 2, qualidade da Onda 4, design/T15) e as pendencias P1/P3 do ensaio.
+Testes: 197 no app + 57 no demo-server. Lint 0 errors / 29 warnings. Typecheck limpo.
+
+BLOQUEIO UNICO: nao ha runtime de simulador iOS instalado (xcrun simctl list runtimes vazio).
+Exige autorizacao de admin: Xcode > Settings > Components. Sem isso, NADA visual foi validado.
+
+Pendente apos desbloquear:
+1. Ensaio visual dos 5 atos no simulador, com screenshots (o unico item que fecha o T16).
+2. Reavaliar duracao dos cards de permanencia (Aparecida x Resende) agora que o relogio e monotonico.
+3. Conferir no projetor se o skeleton de stats le como "carregando"; se nao, subir alpha de bone.onDark.
+4. Larguras de botao/label conferidas por calculo, nao por render (faixa de acoes do mapa, grade de status).
+5. Burndown opcional: 14 dos 24 warnings do app sao react-hooks/refs em 3 linhas
+   (useRef(new Animated.Value())) — correcao mecanica e const [x] = useState(() => new Animated.Value()).
+6. Opcional com spec: caminho "sair agora" no card de risco (Ato 1).
+7. Deduplicar cityName (existe em screens/stats/helpers.ts e em lib/place.ts).
