@@ -81,3 +81,31 @@ Correcao T06-fix (despachar APOS T05 concluir, para evitar colisao de arquivos):
 - autoplay.ts: marcar running=false ao terminar o roteiro.
 - bootstrap.ts (app): validacao minima de campos do BootstrapData.
 - Rodar TODAS as suites (shared/app/demo-server) apos o ajuste, incluindo as de T05.
+- Pendencia de infra (T16): nao existe eslint.config.* em projeto/app — o quality gate de
+  lint da stack ainda nao foi configurado no pacote do app. Configurar antes do ensaio final.
+- T16: avaliar retry em segundo plano para voltar do auto-play ao painel sem reiniciar o app
+  (hoje, se o WS desiste no boot, so volta ao modo painel reiniciando).
+- T16: avaliar declarar o plugin expo-notifications em app.json (necessario so para
+  icone/som custom em build nativo; local notifications ja funcionam sem ele).
+
+## Onda 5b — correcoes da revisao da Onda 4
+
+Revisao reprovou T09 (spec+qualidade), T11 e T12 (qualidade). Correcoes em 5 escopos disjuntos:
+
+- F1 (map): card de parada some 5s apos STOP_APPROACHING; selectDwell nunca usado; onibus
+  teleporta entre amostras; rotulo "Proxima parada" mente apos a ultima parada; usar stops do
+  store; alerta de transito invisivel no mapa; sem testes.
+- F2 (terminal): DOIS tempos de caminhada contraditorios na mesma tela (evento 4 min vs grafo
+  13 min); grafo estatico misturado com mapa do store; banner nao reaparece ao repetir a cena
+  (quebra ensaio); sem testes.
+- F3 (ticket): selo "Disponivel offline" nunca aparece — em modo aviao a conexao vira
+  'autoplay', nao 'offline'; sem testes.
+- F4 (home+stats): decisao de risco nunca reseta (quebra segundo ensaio); fileira de links
+  redundante apos T14; texto legal fixo contradiz percentuais dinamicos; tipo frouxo no skeleton.
+- F5 (dados/painel): acentuacao ausente em scenario.ts e stops.ts aparece na tela em modo
+  auto-play; prazo de reembolso absoluto no painel pode abrir "expirado".
+
+Transversal: comentarios em pt-BR em 6 arquivos (regra: codigo em ingles).
+
+ACHADO REJEITADO: revisor alegou que 31f632e (onTimePct) nao tem teste de regressao.
+Verificado: implementacao antiga retorna 57, teste espera 58 — falhava antes, passa agora.
