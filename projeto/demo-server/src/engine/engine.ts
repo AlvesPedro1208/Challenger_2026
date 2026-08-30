@@ -35,6 +35,20 @@ const DEFAULT_TICK_MS = 25;
 /** Interpolated telemetry cadence, in scenario milliseconds. */
 const TELEMETRY_INTERVAL_MS = 2000;
 
+/** The whole demo happens in Sao Paulo, which has a fixed -03:00 offset. */
+const SIM_OFFSET_MS = -3 * 60 * 60 * 1000;
+
+const MINUTE_MS = 60_000;
+
+/**
+ * Single wire format for `at`: Sao Paulo wall time with an explicit offset and
+ * whole seconds, matching how the scenario script writes its own stamps.
+ */
+function formatSimIso(epochMs: number): string {
+  const wall = new Date(Math.floor(epochMs / 1000) * 1000 + SIM_OFFSET_MS);
+  return `${wall.toISOString().slice(0, 19)}-03:00`;
+}
+
 // Cumulative distance per route point; ratios give the fraction along the
 // route, so the constant road-curve scale factor cancels out.
 const cumulativeKm: number[] = ROUTE_POINTS.reduce<number[]>((acc, point, i) => {
@@ -70,6 +84,12 @@ interface TelemetrySegment {
   next: TelemetryAnchor | null;
 }
 
+/** One scripted step mapped to the simulated instant it happens at. */
+interface TimelinePoint {
+  afterMs: number;
+  atMs: number;
+}
+
 export class ScenarioEngine {
   private readonly broadcast: (event: DemoEvent) => void;
   private readonly journeyState: JourneyState;
@@ -86,6 +106,8 @@ export class ScenarioEngine {
   private timer: ReturnType<typeof setInterval> | null = null;
   private segment: TelemetrySegment | null = null;
   private lastTelemetryElapsedMs = 0;
+  private timeline: TimelinePoint[] = [];
+  private lastEmittedAtMs = Number.NEGATIVE_INFINITY;
 
   constructor(options: EngineOptions) {
     this.broadcast = options.broadcast;
@@ -155,6 +177,8 @@ export class ScenarioEngine {
     this.elapsedMs = 0;
     this.segment = null;
     this.lastTelemetryElapsedMs = 0;
+    this.lastEmittedAtMs = Number.NEGATIVE_INFINITY;
+    this.buildTimeline();
     this.journeyState.reset();
     if (this.clock.isPaused()) this.clock.resume();
     this.status = "running";
@@ -255,6 +279,74 @@ export class ScenarioEngine {
   }
 
   /**
+   * The simulated timeline of the running scenario: every scripted step mapped
+   * to its own `at`. Interpolated telemetry reads its stamp from this map
+   * instead of lerping between telemetry samples alone, which used to run the
+   * stamps past the scripted steps sitting between two samples. The running
+   * maximum keeps the map non-decreasing even if a script stamp dips.
+   */
+  private buildTimeline(): void {
+    const points: TimelinePoint[] = [];
+    let maxAtMs = Number.NEGATIVE_INFINITY;
+    for (const step of this.steps) {
+      const atMs = Date.parse(step.event.at);
+      if (Number.isNaN(atMs)) continue;
+      maxAtMs = Math.max(maxAtMs, atMs);
+      const last = points[points.length - 1];
+      if (last && last.afterMs === step.afterMs) {
+        last.atMs = maxAtMs;
+        continue;
+      }
+      points.push({ afterMs: step.afterMs, atMs: maxAtMs });
+    }
+    this.timeline = points;
+  }
+
+  /** Simulated instant of a scenario offset, interpolated between steps. */
+  private simAtMs(afterMs: number): number {
+    const points = this.timeline;
+    const first = points[0];
+    const last = points[points.length - 1];
+    if (!first || !last) return Number.NaN;
+    if (afterMs <= first.afterMs) return first.atMs;
+    if (afterMs >= last.afterMs) return last.atMs;
+    for (let i = 1; i < points.length; i += 1) {
+      const b = points[i]!;
+      if (afterMs > b.afterMs) continue;
+      const a = points[i - 1]!;
+      const span = b.afterMs - a.afterMs;
+      return span <= 0 ? b.atMs : lerp(a.atMs, b.atMs, (afterMs - a.afterMs) / span);
+    }
+    return last.atMs;
+  }
+
+  /**
+   * ETA to the next stop, aware of the handover between stops. While both
+   * anchors count toward the same stop the value falls, and interpolating is
+   * right. When the next anchor already counts toward a LATER stop its value
+   * is higher, and interpolating would make the countdown climb on screen:
+   * run the previous anchor's countdown down to its stop instead, then count
+   * toward the next one, backwards from the next anchor.
+   */
+  private etaAtInstant(
+    prev: TelemetryAnchor,
+    next: TelemetryAnchor,
+    afterMs: number,
+    atMs: number,
+  ): number {
+    const prevEta = prev.event.etaNextStopMin;
+    const nextEta = next.event.etaNextStopMin;
+    if (nextEta <= prevEta) {
+      const t = (afterMs - prev.afterMs) / (next.afterMs - prev.afterMs);
+      return Math.round(lerp(prevEta, nextEta, t));
+    }
+    const elapsedMin = (atMs - this.simAtMs(prev.afterMs)) / MINUTE_MS;
+    if (elapsedMin < prevEta) return Math.round(prevEta - elapsedMin);
+    const remainingMin = (this.simAtMs(next.afterMs) - atMs) / MINUTE_MS;
+    return Math.round(nextEta + Math.max(0, remainingMin));
+  }
+
+  /**
    * Between scripted telemetry samples, emit interpolated positions every
    * TELEMETRY_INTERVAL_MS of scenario time so the bus glides along the route
    * polyline instead of teleporting between samples.
@@ -266,19 +358,15 @@ export class ScenarioEngine {
     while (target <= limitMs && target < next.afterMs) {
       const t = (target - prev.afterMs) / (next.afterMs - prev.afterMs);
       const position = pointAtFraction(lerp(prev.fraction, next.fraction, t));
-      const at = new Date(
-        lerp(Date.parse(prev.event.at), Date.parse(next.event.at), t),
-      ).toISOString();
+      const atMs = this.simAtMs(target);
       this.emit({
         type: "BUS_TELEMETRY",
-        at,
+        at: formatSimIso(atMs),
         lat: position.lat,
         lng: position.lng,
         speedKmh: Math.round(lerp(prev.event.speedKmh, next.event.speedKmh, t)),
         heading: position.heading,
-        etaNextStopMin: Math.round(
-          lerp(prev.event.etaNextStopMin, next.event.etaNextStopMin, t),
-        ),
+        etaNextStopMin: this.etaAtInstant(prev, next, target, atMs),
         etaDestinationIso: prev.event.etaDestinationIso,
       });
       this.lastTelemetryElapsedMs = target;
@@ -288,10 +376,30 @@ export class ScenarioEngine {
 
   private emit(event: DemoEvent): void {
     if (event.type === "CLOCK_SET") {
-      // isoTime is the source of truth; `at` is only a send stamp.
-      this.clock.setBase(event.isoTime);
+      // A clock jump is the sanctioned way to move the demo timeline, so it
+      // re-anchors the stamp floor instead of being held back by it.
+      const anchor = Date.parse(event.isoTime);
+      if (!Number.isNaN(anchor)) this.lastEmittedAtMs = anchor;
     }
-    this.journeyState.apply(event);
-    this.broadcast(event);
+    const stamped = this.stamp(event);
+    if (stamped.type === "CLOCK_SET") {
+      // isoTime is the source of truth; `at` is only a send stamp.
+      this.clock.setBase(stamped.isoTime);
+    }
+    this.journeyState.apply(stamped);
+    this.broadcast(stamped);
+  }
+
+  /**
+   * Put the event on the wire in the single `at` format, never stamped before
+   * the last event already sent. The app's clock follows the `at` of every
+   * event, so a stamp going backwards rewinds the whole screen.
+   */
+  private stamp(event: DemoEvent): DemoEvent {
+    const parsed = Date.parse(event.at);
+    if (Number.isNaN(parsed)) return event;
+    const at = formatSimIso(Math.max(parsed, this.lastEmittedAtMs));
+    this.lastEmittedAtMs = Date.parse(at);
+    return event.at === at ? event : { ...event, at };
   }
 }
