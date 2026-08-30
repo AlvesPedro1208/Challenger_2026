@@ -109,3 +109,20 @@ Transversal: comentarios em pt-BR em 6 arquivos (regra: codigo em ingles).
 
 ACHADO REJEITADO: revisor alegou que 31f632e (onTimePct) nao tem teste de regressao.
 Verificado: implementacao antiga retorna 57, teste espera 58 — falhava antes, passa agora.
+
+## Onda 6 — correcoes da revisao de design (T15)
+
+Veredito: reprovado para telao sem correcoes. Bloqueadores reais de apresentacao:
+- A1/A2: nomes de cidade completos ("Sao Paulo (Terminal Tiete)") em tipografia 34pt
+  estouram em varias linhas e empurram o countdown para fora da dobra — primeira tela da demo.
+- A3: /stats inalcancavel no Ato 4 (nao esta em PHASE_ROUTES e nao ha CTA no mapa).
+- A4: mapa e tela sem saida — sem header, sem back, sem proxima acao.
+- A5: bilhete inalcancavel apos o embarque (unico caminho era pelo terminal).
+- A6: skeleton de stats com contraste 1.2:1 — no projetor parece tela travada.
+- A7: indicador de fonte de dados sobrepoe CTAs no rodape.
+Polimento: contraste de pills roxas (2.3:1), alvos de toque < 44pt, divergencias de
+tipografia/espacamento entre telas, tokens do tema claro nao tokenizados, telas sem
+proxima acao (stats e POIs da chegada), jargao "Auto-play" visivel na demo.
+
+Escopos disjuntos: G1 mapa+navegacao · G2 lib+home+bilhete · G3 stats+chegada · G4 primitivos+tokens.
+Pendencia: cityName duplicado (stats/helpers.ts e o novo lib) — deduplicar no T16.
