@@ -2,14 +2,14 @@ import type { DailyDelayPoint, DelayHistogramBucket } from '@jornada/shared';
 
 export type RiskTone = 'success' | 'warning' | 'danger';
 
-/** Verde abaixo de 15%, âmbar entre 15% e 30%, rosa acima de 30%. */
+/** Green below 15%, amber from 15% to 30%, pink above 30%. */
 export function riskTone(riskPct: number): RiskTone {
   if (riskPct < 15) return 'success';
   if (riskPct <= 30) return 'warning';
   return 'danger';
 }
 
-/** Rótulo de confiabilidade derivado do tamanho da amostra. */
+/** Reliability label derived from the sample size. */
 export function reliabilityLabel(sampleSize: number): string {
   if (sampleSize >= 200) return 'Confiabilidade alta';
   if (sampleSize >= 80) return 'Confiabilidade média';
@@ -17,8 +17,8 @@ export function reliabilityLabel(sampleSize: number): string {
 }
 
 /**
- * Percentual de viagens no horário. Os dois primeiros buckets do histograma
- * representam saídas adiantadas e no horário, na ordem definida pelo modelo.
+ * Percentage of on-time trips. The first two histogram buckets stand for early
+ * and on-time departures, in the order defined by the model.
  */
 export function onTimePct(histogram: DelayHistogramBucket[]): number {
   const total = histogram.reduce((sum, bucket) => sum + bucket.count, 0);
@@ -27,7 +27,7 @@ export function onTimePct(histogram: DelayHistogramBucket[]): number {
   return Math.round((onTime * 100) / total);
 }
 
-/** Índice do bucket com maior contagem (barra dominante do histograma). */
+/** Index of the bucket with the highest count (the histogram's dominant bar). */
 export function dominantBucketIndex(histogram: DelayHistogramBucket[]): number {
   let best = 0;
   histogram.forEach((bucket, i) => {
@@ -36,7 +36,7 @@ export function dominantBucketIndex(histogram: DelayHistogramBucket[]): number {
   return best;
 }
 
-/** Pior faixa com ocorrências: último bucket do histograma com contagem > 0. */
+/** Worst range with occurrences: the last histogram bucket with a count > 0. */
 export function worstObservedBucket(
   histogram: DelayHistogramBucket[],
 ): DelayHistogramBucket | null {
@@ -47,7 +47,7 @@ export function worstObservedBucket(
   return null;
 }
 
-/** Índice do dia com maior atraso médio na série diária. */
+/** Index of the day with the highest average delay in the daily series. */
 export function maxPointIndex(series: DailyDelayPoint[]): number {
   let best = 0;
   series.forEach((point, i) => {
@@ -71,7 +71,7 @@ const MONTHS_PT = [
   'dez',
 ] as const;
 
-/** Formata uma data ISO (YYYY-MM-DD) como "28 ago", sem depender de fuso. */
+/** Formats an ISO date (YYYY-MM-DD) as "28 ago", with no timezone dependency. */
 export function formatShortDate(isoDate: string): string {
   const [, month, day] = isoDate.split('-');
   const monthIndex = Number(month) - 1;
@@ -79,7 +79,7 @@ export function formatShortDate(isoDate: string): string {
   return `${Number(day)} ${monthLabel}`.trim();
 }
 
-/** Período coberto pela série diária, ex.: "30 jun – 28 ago". */
+/** Period covered by the daily series, e.g. "30 jun – 28 ago". */
 export function formatPeriod(series: DailyDelayPoint[]): string {
   const first = series[0];
   const last = series[series.length - 1];
@@ -87,7 +87,7 @@ export function formatPeriod(series: DailyDelayPoint[]): string {
   return `${formatShortDate(first.date)} – ${formatShortDate(last.date)}`;
 }
 
-/** Remove o complemento entre parênteses do nome da cidade, ex.: "São Paulo (Tietê)". */
+/** Strips the parenthesised complement from a city name, e.g. "São Paulo (Tietê)". */
 export function cityName(place: string): string {
   return place.replace(/\s*\(.*\)\s*$/, '').trim();
 }

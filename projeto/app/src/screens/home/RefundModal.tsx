@@ -3,12 +3,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton, StatusPill } from '@/components/ui';
 import { colors, spacing, typography } from '@/theme/tokens';
 
-import { formatDateTimeLabel } from './format';
+import { formatDateTimeLabel, hoursBetween } from './format';
 import { ModalSheet } from './ModalSheet';
 
 type RefundModalProps = {
   visible: boolean;
   deadlineIso: string;
+  departureIso: string;
   retentionPct: number;
   expired: boolean;
   onConfirm: () => void;
@@ -18,11 +19,18 @@ type RefundModalProps = {
 export function RefundModal({
   visible,
   deadlineIso,
+  departureIso,
   retentionPct,
   expired,
   onConfirm,
   onClose,
 }: RefundModalProps) {
+  const leadHours = hoursBetween(deadlineIso, departureIso);
+  const windowLabel =
+    leadHours === null
+      ? `até ${formatDateTimeLabel(deadlineIso)}`
+      : `até ${leadHours} ${leadHours === 1 ? 'hora' : 'horas'} antes da partida`;
+
   return (
     <ModalSheet visible={visible} title="Cancelar com reembolso" onClose={onClose}>
       <View style={styles.row}>
@@ -34,8 +42,8 @@ export function RefundModal({
         <Text style={styles.rowValue}>{retentionPct}% do valor pago</Text>
       </View>
       <Text style={styles.rule}>
-        Pela regra da ANTT, o cancelamento com reembolso vale até 3 horas antes da partida, com
-        retenção máxima de 5% sobre o valor da passagem.
+        Pela regra da ANTT, o cancelamento com reembolso vale {windowLabel}, com retenção de{' '}
+        {retentionPct}% sobre o valor da passagem.
       </Text>
       {expired ? (
         <View style={styles.expiredBlock}>

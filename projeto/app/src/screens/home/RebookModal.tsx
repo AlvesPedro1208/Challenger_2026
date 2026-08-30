@@ -21,8 +21,9 @@ export function RebookModal({ visible, feeBRL, onConfirm, onClose }: RebookModal
         <Text style={styles.feeValue}>{formatBRL(feeBRL)}</Text>
       </View>
       <Text style={styles.rule}>
-        Pela regra da ANTT, a remarcação pode ser feita até 3 horas antes da partida, mantendo o
-        valor já pago na passagem original.
+        {feeBRL > 0
+          ? 'Pela regra da ANTT, a remarcação mantém o valor já pago na passagem original: a taxa acima é a única cobrança adicional.'
+          : 'Pela regra da ANTT, a remarcação mantém o valor já pago na passagem original, sem cobrança adicional.'}
       </Text>
       <PrimaryButton label="Confirmar remarcação" onPress={onConfirm} />
     </ModalSheet>

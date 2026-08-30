@@ -7,6 +7,7 @@ import {
   formatDateTimeLabel,
   formatDepartureLabel,
   formatTimeHM,
+  hoursBetween,
   isPastDeadline,
   parseIsoParts,
 } from '../format';
@@ -96,6 +97,29 @@ describe('formatBRL', () => {
 
   it('formata centavos', () => {
     expect(formatBRL(12.5)).toBe('R$ 12,50');
+  });
+});
+
+describe('hoursBetween', () => {
+  it('conta as horas inteiras entre prazo e partida', () => {
+    expect(hoursBetween('2026-09-13T21:30:00-03:00', '2026-09-13T22:30:00-03:00')).toBe(1);
+    expect(hoursBetween('2026-09-13T19:30:00-03:00', '2026-09-13T22:30:00-03:00')).toBe(3);
+  });
+
+  it('trunca a fracao de hora', () => {
+    expect(hoursBetween('2026-09-13T20:00:00-03:00', '2026-09-13T22:30:00-03:00')).toBe(2);
+  });
+
+  it('retorna null abaixo de uma hora', () => {
+    expect(hoursBetween('2026-09-13T22:00:00-03:00', '2026-09-13T22:30:00-03:00')).toBeNull();
+  });
+
+  it('retorna null quando o intervalo e negativo', () => {
+    expect(hoursBetween('2026-09-13T23:30:00-03:00', '2026-09-13T22:30:00-03:00')).toBeNull();
+  });
+
+  it('retorna null para timestamps invalidos', () => {
+    expect(hoursBetween('ontem', '2026-09-13T22:30:00-03:00')).toBeNull();
   });
 });
 

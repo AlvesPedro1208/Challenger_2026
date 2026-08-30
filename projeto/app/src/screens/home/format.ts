@@ -1,4 +1,4 @@
-/** Helpers puros de data, contagem regressiva e moeda (pt-BR, relogio simulado). */
+/** Pure date, countdown and currency helpers (pt-BR labels, simulated clock). */
 
 const ISO_PARTS = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
 
@@ -27,8 +27,8 @@ export interface IsoParts {
 }
 
 /**
- * Extrai as partes "de parede" do timestamp ISO como escrito (com offset),
- * sem converter para o fuso do aparelho.
+ * Extracts the wall-clock parts of the ISO timestamp exactly as written (with
+ * its offset), without converting to the device timezone.
  */
 export function parseIsoParts(iso: string): IsoParts | null {
   const match = ISO_PARTS.exec(iso);
@@ -54,7 +54,7 @@ export function formatTimeHM(iso: string): string {
   return `${hh}:${mm}`;
 }
 
-/** Ex.: "Dom, 13 de set · 22:30". */
+/** E.g. "Dom, 13 de set · 22:30". */
 export function formatDepartureLabel(iso: string): string {
   const parts = parseIsoParts(iso);
   if (!parts) {
@@ -66,7 +66,7 @@ export function formatDepartureLabel(iso: string): string {
   return `${weekday}, ${parts.day} de ${month} · ${formatTimeHM(iso)}`;
 }
 
-/** Ex.: "13 de set às 21:30". */
+/** E.g. "13 de set às 21:30". */
 export function formatDateTimeLabel(iso: string): string {
   const parts = parseIsoParts(iso);
   if (!parts) {
@@ -83,8 +83,9 @@ export interface CountdownParts {
 }
 
 /**
- * Diferenca entre o relogio simulado e o alvo. Retorna null sem relogio
- * (antes do bootstrap) ou com timestamps invalidos; zera quando o alvo passou.
+ * Difference between the simulated clock and the target. Returns null without a
+ * clock (before bootstrap) or with invalid timestamps; clamps to zero once the
+ * target is in the past.
  */
 export function countdownBetween(clockIso: string | null, targetIso: string): CountdownParts | null {
   if (!clockIso) {
@@ -113,11 +114,25 @@ export function formatCountdown(parts: CountdownParts): string {
   return `${parts.hours}h ${String(parts.minutes).padStart(2, '0')}min`;
 }
 
+/**
+ * Whole hours from `fromIso` to `toIso`. Returns null for invalid timestamps or
+ * for gaps shorter than one hour, so callers can fall back to another wording.
+ */
+export function hoursBetween(fromIso: string, toIso: string): number | null {
+  const from = Date.parse(fromIso);
+  const to = Date.parse(toIso);
+  if (Number.isNaN(from) || Number.isNaN(to)) {
+    return null;
+  }
+  const hours = Math.floor((to - from) / 3600000);
+  return hours >= 1 ? hours : null;
+}
+
 export function formatBRL(value: number): string {
   return `R$ ${value.toFixed(2).replace('.', ',')}`;
 }
 
-/** Prazo expirado segundo o relogio simulado (sem relogio, assume vigente). */
+/** Deadline expired per the simulated clock (with no clock, assumes it still holds). */
 export function isPastDeadline(clockIso: string | null, deadlineIso: string): boolean {
   if (!clockIso) {
     return false;

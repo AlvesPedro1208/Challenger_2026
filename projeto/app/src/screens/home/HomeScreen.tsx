@@ -1,4 +1,4 @@
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
@@ -15,6 +15,7 @@ import {
   selectTrip,
   useJourneyStore,
   type BusState,
+  type RiskState,
 } from '@/state/store';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
@@ -39,6 +40,17 @@ export function HomeScreen() {
   const [rebookVisible, setRebookVisible] = useState(false);
   const [refundVisible, setRefundVisible] = useState(false);
   const [resolution, setResolution] = useState<RiskResolution | null>(null);
+  const [decidedRisk, setDecidedRisk] = useState<RiskState | null>(risk);
+
+  // Every RISK_UPDATE builds a fresh risk object in the store, so a different
+  // reference means a new alert (the panel can re-fire the scene with the same
+  // numbers). The previous decision no longer applies: bring the actions back.
+  if (risk !== decidedRisk) {
+    setDecidedRisk(risk);
+    setResolution(null);
+    setRebookVisible(false);
+    setRefundVisible(false);
+  }
 
   if (!trip) {
     return (
@@ -138,24 +150,6 @@ export function HomeScreen() {
         </View>
       ) : null}
 
-      <View style={styles.footer}>
-        <Link href="/map" style={styles.footerLink}>
-          Mapa
-        </Link>
-        <Link href="/stats" style={styles.footerLink}>
-          Estatísticas
-        </Link>
-        <Link href="/terminal" style={styles.footerLink}>
-          Terminal
-        </Link>
-        <Link href="/ticket" style={styles.footerLink}>
-          Bilhete
-        </Link>
-        <Link href="/arrival" style={styles.footerLink}>
-          Chegada
-        </Link>
-      </View>
-
       {risk ? (
         <>
           <RebookModal
@@ -170,6 +164,7 @@ export function HomeScreen() {
           <RefundModal
             visible={refundVisible}
             deadlineIso={risk.refundDeadlineIso}
+            departureIso={trip.departureIso}
             retentionPct={risk.refundRetentionPct}
             expired={refundExpired}
             onConfirm={() => {
@@ -367,20 +362,6 @@ const styles = StyleSheet.create({
   riskActions: {
     gap: spacing.sm,
     marginTop: spacing.xs,
-  },
-  footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  footerLink: {
-    ...typography.caption,
-    color: colors.text.secondary,
   },
   skeletonCard: {
     backgroundColor: colors.bg.surface,

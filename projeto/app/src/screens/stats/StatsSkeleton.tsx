@@ -1,12 +1,19 @@
 import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, type DimensionValue } from 'react-native';
+import {
+  Animated,
+  StyleSheet,
+  View,
+  type DimensionValue,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { colors, radii, spacing } from '@/theme/tokens';
 
 type BlockProps = {
   height: number;
   width?: DimensionValue;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 };
 
 function Block({ height, width = '100%', style }: BlockProps) {
