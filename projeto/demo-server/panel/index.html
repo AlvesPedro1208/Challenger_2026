@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jornada Viva — Painel da Demo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="statusbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div>
+        <h1>Jornada Viva</h1>
+        <p>Mesa de controle da demo</p>
+      </div>
+    </div>
+    <div class="status-items">
+      <div class="status-item">
+        <span class="label">Conexão</span>
+        <span class="value"><span id="ws-dot" class="dot dot-off"></span><span id="ws-status">desconectado</span></span>
+      </div>
+      <div class="status-item">
+        <span class="label">Engine</span>
+        <span id="engine-status" class="value pill pill-idle">—</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Passo</span>
+        <span id="engine-step" class="value">—</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Relógio simulado</span>
+        <span id="engine-clock" class="value mono">—</span>
+      </div>
+      <div class="status-item">
+        <span class="label">Velocidade</span>
+        <span id="engine-speed" class="value mono">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="column">
+      <div class="card">
+        <h2>Cenário</h2>
+        <p class="hint">São Paulo (Tietê) → Rio de Janeiro (Novo Rio), saída 22:30</p>
+        <div class="row">
+          <button id="btn-start" class="btn btn-primary">Iniciar cenário</button>
+          <button id="btn-pause" class="btn">Pausar</button>
+          <button id="btn-resume" class="btn">Retomar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Velocidade da simulação</h2>
+        <div class="row" id="speed-group">
+          <button class="btn btn-speed" data-speed="1">1x</button>
+          <button class="btn btn-speed" data-speed="5">5x</button>
+          <button class="btn btn-speed" data-speed="20">20x</button>
+          <button class="btn btn-speed" data-speed="60">60x</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Relógio simulado</h2>
+        <div class="row">
+          <input id="clock-input" type="datetime-local" step="60" value="2026-09-13T20:00" />
+          <button id="btn-set-clock" class="btn">Definir relógio</button>
+        </div>
+        <p class="hint">Horário local de São Paulo (UTC−03:00)</p>
+      </div>
+
+      <div class="card">
+        <h2>Fases da jornada</h2>
+        <div class="row wrap" id="phase-group">
+          <button class="btn btn-phase" data-phase="HOME">Em casa</button>
+          <button class="btn btn-phase" data-phase="EN_ROUTE_TERMINAL">A caminho do terminal</button>
+          <button class="btn btn-phase" data-phase="TERMINAL">No terminal</button>
+          <button class="btn btn-phase" data-phase="ONBOARD">A bordo</button>
+          <button class="btn btn-phase" data-phase="ARRIVED">Chegou</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Disparar cenas</h2>
+        <div class="scene-grid">
+          <button id="scene-traffic" class="btn btn-scene accent-amber">
+            <strong>Trânsito ruim</strong>
+            <span>Acidente na Marginal Tietê</span>
+          </button>
+          <button id="scene-risk" class="btn btn-scene accent-pink">
+            <strong>Risco de perda</strong>
+            <span>38% de perder o embarque</span>
+          </button>
+          <button id="scene-platform" class="btn btn-scene accent-purple">
+            <strong>Troca de plataforma</strong>
+            <span>45 → 48, 4 min a pé</span>
+          </button>
+          <button id="scene-delay" class="btn btn-scene accent-amber">
+            <strong>Atraso 25 min</strong>
+            <span>Obras na Via Dutra, km 150</span>
+          </button>
+          <button id="scene-stop" class="btn btn-scene accent-purple">
+            <strong>Aproximando de Aparecida</strong>
+            <span>Parada de apoio em 8 min</span>
+          </button>
+          <button id="scene-arrival" class="btn btn-scene accent-green">
+            <strong>Chegada</strong>
+            <span>Terminal Novo Rio</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="column column-log">
+      <div class="card card-log">
+        <div class="log-header">
+          <h2>Eventos ao vivo</h2>
+          <div class="row">
+            <label class="check"><input id="log-follow" type="checkbox" checked /> seguir</label>
+            <button id="btn-clear-log" class="btn btn-small">Limpar</button>
+          </div>
+        </div>
+        <ul id="log" class="log"></ul>
+      </div>
+    </section>
+  </main>
+
+  <div id="toasts" class="toasts"></div>
+
+  <script src="panel.js"></script>
+</body>
+</html>
