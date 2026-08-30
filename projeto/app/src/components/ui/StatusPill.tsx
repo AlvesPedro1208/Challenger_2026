@@ -9,11 +9,14 @@ type StatusPillProps = {
 
 export function StatusPill({ label, tone = 'success' }: StatusPillProps) {
   const accent = colors.accent[tone];
+  // The tinted background keeps the accent hue; the label uses the lightened
+  // on-tone color so every tone clears WCAG AA (4.5:1) at 13pt.
+  const onTone = colors.onTone[tone];
 
   return (
     <View style={[styles.pill, { backgroundColor: `${accent}26` }]}>
-      <View style={[styles.dot, { backgroundColor: accent }]} />
-      <Text style={[styles.label, { color: accent }]}>{label}</Text>
+      <View style={[styles.dot, { backgroundColor: onTone }]} />
+      <Text style={[styles.label, { color: onTone }]}>{label}</Text>
     </View>
   );
 }

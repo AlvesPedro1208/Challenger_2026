@@ -12,6 +12,39 @@ export const colors = {
   text: {
     primary: '#FFFFFF',
     secondary: '#B9B3C4',
+    dark: '#1A1A1A',
+  },
+  // Label colors for accent-tinted surfaces (accent at 15% over bg.primary/bg.surface).
+  // The raw accents fail WCAG AA there, so pink and purple are lightened; green and
+  // amber already clear 4.5:1 and stay at their palette value.
+  onTone: {
+    primary: '#FF6FA0',
+    purple: '#B08CF7',
+    success: '#10B981',
+    warning: '#F5A623',
+  },
+  // Light "paper" theme of the ticket. Replaces the literals currently inlined in the
+  // ticket screens: ink -> INK '#1A1A1A', inkSoft -> INK_SOFT '#6B6572',
+  // divider -> DIVIDER '#ECE9F1', surface -> the '#FFFFFF' card backgrounds.
+  ticket: {
+    surface: '#FFFFFF',
+    ink: '#1A1A1A',
+    inkSoft: '#6B6572',
+    divider: '#ECE9F1',
+  },
+  // Scrim behind modal sheets. Replaces 'rgba(11, 8, 16, 0.72)'.
+  overlay: {
+    scrim: 'rgba(11, 8, 16, 0.72)',
+  },
+  // 1px separators. Replaces 'rgba(255, 255, 255, 0.16)'.
+  hairline: {
+    onDark: 'rgba(255, 255, 255, 0.16)',
+  },
+  // Skeleton placeholder blocks. Replaces SKELETON_BONE 'rgba(255, 255, 255, 0.08)'
+  // on dark screens and BONE '#EEEBF2' on the light ticket.
+  bone: {
+    onDark: 'rgba(255, 255, 255, 0.08)',
+    onLight: '#EEEBF2',
   },
 } as const;
 

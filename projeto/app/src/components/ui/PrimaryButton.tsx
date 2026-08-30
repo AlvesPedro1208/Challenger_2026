@@ -10,6 +10,14 @@ const variantColors: Record<ButtonVariant, string> = {
   green: colors.accent.success,
 };
 
+// White on the success green is only 2.54:1; dark ink on it is 6.86:1.
+// Pink (4.56:1) and purple (5.70:1) keep the white label.
+const variantLabelColors: Record<ButtonVariant, string> = {
+  pink: colors.text.primary,
+  purple: colors.text.primary,
+  green: colors.text.dark,
+};
+
 type PrimaryButtonProps = {
   label: string;
   onPress?: () => void;
@@ -27,6 +35,9 @@ export function PrimaryButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.button,
         { backgroundColor: variantColors[variant] },
@@ -34,7 +45,7 @@ export function PrimaryButton({
         disabled && styles.disabled,
       ]}
     >
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: variantLabelColors[variant] }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -42,7 +53,9 @@ export function PrimaryButton({
 const styles = StyleSheet.create({
   button: {
     width: '100%',
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radii.lg,
     paddingVertical: spacing.md,
   },
