@@ -14,23 +14,15 @@ import {
 } from '@/state/store';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
-import { formatIsoTime, minutesUntil } from './format';
+import { formatDuration, formatIsoTime, minutesUntil } from './format';
 import { IndoorMapView } from './IndoorMapView';
-import { routeToPlatform } from './indoorRoute';
+import { indoorGraphFor } from './indoorRoute';
+import { resolveWalkGuidance, type PlatformChangeInput } from './walk';
 
 const PHASE_ORDER: DemoPhase[] = ['HOME', 'EN_ROUTE_TERMINAL', 'TERMINAL', 'ONBOARD', 'ARRIVED'];
 
 function isAfter(phase: DemoPhase, reference: DemoPhase): boolean {
   return PHASE_ORDER.indexOf(phase) > PHASE_ORDER.indexOf(reference);
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes} min`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
 
 export function TerminalScreen() {
@@ -41,20 +33,28 @@ export function TerminalScreen() {
   const platform = useJourneyStore(selectPlatform);
   const indoorMap = useJourneyStore(selectIndoorMap);
 
-  const [dismissedChange, setDismissedChange] = useState<string | null>(null);
+  /**
+   * Dismissal is tracked by the pending-change object itself, not by its
+   * "from-to" labels: the store builds a new object on every PLATFORM_CHANGE
+   * event, so re-firing the same 45 -> 48 change from the panel shows the
+   * banner again (the demo is rehearsed many times).
+   */
+  const [dismissedChange, setDismissedChange] = useState<PlatformChangeInput | null>(null);
 
   const currentPlatform = platform.current ?? trip?.platform ?? null;
-  const route = useMemo(
-    () => (currentPlatform ? routeToPlatform(currentPlatform) : null),
-    [currentPlatform],
+  const pendingChange = platform.pendingChange;
+
+  const graph = useMemo(() => (indoorMap ? indoorGraphFor(indoorMap) : null), [indoorMap]);
+  const walk = useMemo(
+    () => resolveWalkGuidance(indoorMap, currentPlatform, pendingChange),
+    [indoorMap, currentPlatform, pendingChange],
   );
 
   const boardingTime = formatIsoTime(trip?.departureIso);
   const minutesToBoarding = minutesUntil(trip?.departureIso, clockIso);
 
-  const pendingChange = platform.pendingChange;
-  const changeKey = pendingChange ? `${pendingChange.from}-${pendingChange.to}` : null;
-  const showChangeBanner = changeKey !== null && changeKey !== dismissedChange;
+  const showChangeBanner =
+    pendingChange !== null && pendingChange !== dismissedChange && walk?.bannerMessage != null;
 
   if (!indoorMap) {
     return (
@@ -97,7 +97,12 @@ export function TerminalScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Prévia do mapa</Text>
           <View style={styles.preview}>
-            <IndoorMapView map={indoorMap} activePlatform={currentPlatform} route={null} />
+            <IndoorMapView
+              map={indoorMap}
+              graph={graph}
+              activePlatform={currentPlatform}
+              route={null}
+            />
           </View>
         </View>
       </Screen>
@@ -126,28 +131,31 @@ export function TerminalScreen() {
         ) : null}
       </View>
 
-      {showChangeBanner && pendingChange ? (
+      {showChangeBanner && walk?.bannerMessage ? (
         <View style={styles.section}>
           <AlertBanner
-            message={`Plataforma alterada: ${pendingChange.from} → ${pendingChange.to} · ${formatDuration(pendingChange.walkMinutes)} de caminhada`}
+            message={walk.bannerMessage}
             actionLabel="Entendi"
-            onAction={() => setDismissedChange(changeKey)}
+            onAction={() => setDismissedChange(pendingChange)}
           />
         </View>
       ) : null}
 
       <View style={styles.section}>
-        <IndoorMapView map={indoorMap} activePlatform={currentPlatform} route={route} />
+        <IndoorMapView
+          map={indoorMap}
+          graph={graph}
+          activePlatform={currentPlatform}
+          route={walk?.route ?? null}
+        />
       </View>
 
-      {route && currentPlatform ? (
+      {walk ? (
         <View style={styles.section}>
           <Card>
             <Text style={styles.sectionLabel}>Caminhada até o embarque</Text>
-            <Text style={styles.walkValue}>{formatDuration(route.walkMinutes)}</Text>
-            <Text style={styles.bodyMeta}>
-              Da entrada principal até a plataforma {currentPlatform}
-            </Text>
+            <Text style={styles.walkValue}>{walk.label}</Text>
+            <Text style={styles.bodyMeta}>{walk.caption}</Text>
           </Card>
         </View>
       ) : null}

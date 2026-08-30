@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, {
   Circle,
@@ -7,11 +8,11 @@ import Svg, {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
-import { INDOOR_GRAPH, type IndoorMap, type IndoorMapFeature } from '@jornada/shared';
+import type { IndoorMap, IndoorMapFeature } from '@jornada/shared';
 
 import { colors, radii } from '@/theme/tokens';
 
-import type { IndoorRoute } from './indoorRoute';
+import type { IndoorGraph, IndoorRoute } from './indoorRoute';
 
 const HALL = { x: 110, y: 40, width: 690, height: 520 };
 const BOARDING_CORRIDOR = { x: 810, y: 40, width: 60, height: 520 };
@@ -25,8 +26,6 @@ const GATE_HEIGHT = 90;
 
 const STROKE = colors.text.secondary;
 const DEFAULT_ASPECT_RATIO = 1000 / 600;
-
-const nodePosition = new Map(INDOOR_GRAPH.nodes.map((node) => [node.id, node]));
 
 function aspectRatioOf(viewBox: string): number {
   const parts = viewBox.trim().split(/\s+/);
@@ -63,13 +62,22 @@ function polylinePoints(route: IndoorRoute): string {
 
 type IndoorMapViewProps = {
   map: IndoorMap;
+  /**
+   * Corridor graph of this very map (from `indoorGraphFor`). Null means the
+   * corridors are unknown for the map being drawn, so they are omitted.
+   */
+  graph: IndoorGraph | null;
   /** Platform label (ex.: "48") drawn as a filled pink pill. */
   activePlatform: string | null;
   route: IndoorRoute | null;
 };
 
-export function IndoorMapView({ map, activePlatform, route }: IndoorMapViewProps) {
+export function IndoorMapView({ map, graph, activePlatform, route }: IndoorMapViewProps) {
   const start = route?.points[0];
+  const nodePosition = useMemo(
+    () => new Map((graph?.nodes ?? []).map((node) => [node.id, node])),
+    [graph],
+  );
 
   return (
     <View style={[styles.frame, { aspectRatio: aspectRatioOf(map.viewBox) }]}>
@@ -99,7 +107,7 @@ export function IndoorMapView({ map, activePlatform, route }: IndoorMapViewProps
           strokeWidth={2}
         />
 
-        {INDOOR_GRAPH.edges.map(([fromId, toId]) => {
+        {(graph?.edges ?? []).map(([fromId, toId]) => {
           const from = nodePosition.get(fromId);
           const to = nodePosition.get(toId);
           if (!from || !to) {
