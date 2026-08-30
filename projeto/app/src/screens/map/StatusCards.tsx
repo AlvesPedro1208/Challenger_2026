@@ -74,7 +74,7 @@ export function StatusCards({ bus, highlight, nextTarget }: StatusCardsProps) {
           </View>
 
           <View style={styles.cell}>
-            <Text style={styles.cellLabel}>Chegada ao destino</Text>
+            <Text style={styles.cellLabel}>Chegada prevista</Text>
             <Text style={styles.cellValue}>{arrivalClock ?? '--'}</Text>
           </View>
         </View>
@@ -139,6 +139,8 @@ const styles = StyleSheet.create({
   },
   cellLabel: {
     ...typography.sectionLabel,
+    // Half-width cells: the display letterSpacing wraps the longer labels.
+    letterSpacing: 0.6,
     color: colors.text.secondary,
   },
   cellValue: {

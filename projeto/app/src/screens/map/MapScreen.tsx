@@ -1,8 +1,10 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Polyline, type LatLng, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { navigateBack } from '@/navigation';
 import {
   selectApproachingStop,
   selectBus,
@@ -18,6 +20,8 @@ import { colors, radii, spacing, typography } from '@/theme/tokens';
 import { ROUTE_POINTS, STOPS } from '@jornada/shared';
 
 import { BusMarker } from './BusMarker';
+import { MapActionBar } from './MapActionBar';
+import { MapBackButton } from './MapBackButton';
 import { StatusCards, type NextTarget, type StopHighlight } from './StatusCards';
 import { StopMarkers } from './StopMarkers';
 import { TrafficAlertCard } from './TrafficAlertCard';
@@ -27,13 +31,14 @@ import { remainingStops } from './routeProgress';
 
 const TRACKING_DELTA = 0.45;
 const RECENTER_MS = 900;
-const FIT_PADDING = { top: 96, right: 48, bottom: 280, left: 48 };
+const FIT_PADDING = { top: 140, right: 48, bottom: 340, left: 48 };
 
 /** Simulated clock reading of the moment the bus stopped at a support stop. */
 type DwellStart = { stopId: string; startIso: string | null };
 
 export function MapScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const phase = useJourneyStore(selectPhase);
   const bus = useJourneyStore(selectBus);
   const approaching = useJourneyStore(selectApproachingStop);
@@ -186,24 +191,29 @@ export function MapScreen() {
         {tracking && bus.position ? <BusMarker position={bus.position} /> : null}
       </MapView>
 
-      <View style={[styles.header, { top: insets.top + spacing.sm }]} pointerEvents="none">
-        <View style={styles.headerRow}>
-          <View style={styles.headerCard}>
-            <Text style={styles.headerTitle}>Onde está meu ônibus?</Text>
-            {trip ? (
-              <Text style={styles.headerRoute}>
-                {trip.origin} {'→'} {trip.destination}
-              </Text>
-            ) : null}
-          </View>
+      <View style={[styles.header, { top: insets.top + spacing.lg }]} pointerEvents="box-none">
+        <View style={styles.navRow} pointerEvents="box-none">
+          <MapBackButton onPress={() => navigateBack(router)} />
           {tracking ? (
-            <View style={styles.livePill}>
+            <View style={styles.livePill} pointerEvents="none">
               <View style={styles.liveDot} />
               <Text style={styles.liveLabel}>Ao vivo</Text>
             </View>
           ) : null}
         </View>
-        {trafficAlert ? <TrafficAlertCard alert={trafficAlert} /> : null}
+        <View style={styles.headerCard} pointerEvents="none">
+          <Text style={styles.headerTitle}>Onde está meu ônibus?</Text>
+          {trip ? (
+            <Text style={styles.headerRoute}>
+              {trip.origin} {'→'} {trip.destination}
+            </Text>
+          ) : null}
+        </View>
+        {trafficAlert ? (
+          <View pointerEvents="none">
+            <TrafficAlertCard alert={trafficAlert} />
+          </View>
+        ) : null}
       </View>
 
       <View
@@ -215,6 +225,10 @@ export function MapScreen() {
         ) : (
           <WaitingCard />
         )}
+        <MapActionBar
+          onOpenStats={() => router.push('/stats')}
+          onOpenTicket={() => router.push('/ticket')}
+        />
       </View>
     </View>
   );
@@ -231,10 +245,9 @@ const styles = StyleSheet.create({
     right: spacing.md,
     gap: spacing.sm,
   },
-  headerRow: {
+  navRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   headerCard: {
@@ -242,7 +255,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    flexShrink: 1,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
   },
   headerTitle: {
     ...typography.subtitle,
@@ -261,7 +275,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     paddingVertical: spacing.xs + 2,
     paddingHorizontal: spacing.sm + 4,
-    marginTop: spacing.xs,
   },
   liveDot: {
     width: 8,
