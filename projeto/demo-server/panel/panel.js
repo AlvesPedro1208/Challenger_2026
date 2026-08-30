@@ -62,18 +62,37 @@
     return toSaoPauloIso(deadlineMs);
   }
 
-  // Keeps the simulated wall time as written in the ISO string (offset intact),
-  // instead of converting to the browser's timezone.
+  // Scenario steps carry `at` with an explicit -03:00 offset, while the engine
+  // emits interpolated telemetry with `at` in UTC. Both are resolved to Sao
+  // Paulo wall time here, so the log stays monotonic whatever the form.
+  function spTimeParts(iso) {
+    if (typeof iso !== "string") return null;
+    var ms = Date.parse(iso);
+    if (Number.isNaN(ms)) return null;
+    var parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date(ms));
+    var out = {};
+    for (var i = 0; i < parts.length; i += 1) out[parts[i].type] = parts[i].value;
+    return out;
+  }
+
   function simTimeLabel(iso) {
-    if (typeof iso !== "string") return "--:--";
-    var m = iso.match(/T(\d{2}:\d{2}(?::\d{2})?)/);
-    return m ? m[1] : iso;
+    var p = spTimeParts(iso);
+    if (!p) return typeof iso === "string" ? iso : "--:--";
+    return p.hour + ":" + p.minute + ":" + p.second;
   }
 
   function simDateTimeLabel(iso) {
-    if (typeof iso !== "string") return "—";
-    var m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}(?::\d{2})?)/);
-    return m ? m[3] + "/" + m[2] + " " + m[4] : iso;
+    var p = spTimeParts(iso);
+    if (!p) return typeof iso === "string" ? iso : "—";
+    return p.day + "/" + p.month + " " + p.hour + ":" + p.minute + ":" + p.second;
   }
 
   var spClockFormat = new Intl.DateTimeFormat("pt-BR", {
