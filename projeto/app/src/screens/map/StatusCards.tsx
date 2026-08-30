@@ -12,23 +12,29 @@ import {
   topRatedPois,
 } from './formatters';
 
-type ApproachingInfo = {
-  stop: Stop;
-  inMinutes: number;
-};
+/** The support stop the screen is currently narrating: the next one, or the one being served. */
+export type StopHighlight =
+  | { kind: 'approaching'; stop: Stop; inMinutes: number }
+  | { kind: 'dwell'; stop: Stop; dwellMinutes: number; minutesLeft: number | null };
+
+/** What `bus.etaNextStopMin` is counting down to right now. */
+export type NextTarget =
+  | { kind: 'stop'; name: string }
+  | { kind: 'destination'; name: string | null };
 
 type StatusCardsProps = {
   bus: BusState;
-  approaching: ApproachingInfo | null;
+  highlight: StopHighlight | null;
+  nextTarget: NextTarget;
 };
 
-export function StatusCards({ bus, approaching }: StatusCardsProps) {
+export function StatusCards({ bus, highlight, nextTarget }: StatusCardsProps) {
   const delayed = bus.delayMin > 0;
   const arrivalClock = formatSimClock(bus.etaDestinationIso);
 
   return (
     <View style={styles.root}>
-      {approaching ? <ApproachingCard info={approaching} /> : null}
+      {highlight ? <StopCard highlight={highlight} /> : null}
 
       <View style={styles.card}>
         <View style={styles.grid}>
@@ -56,8 +62,15 @@ export function StatusCards({ bus, approaching }: StatusCardsProps) {
           </View>
 
           <View style={styles.cell}>
-            <Text style={styles.cellLabel}>Próxima parada</Text>
+            <Text style={styles.cellLabel}>
+              {nextTarget.kind === 'stop' ? 'Próxima parada' : 'Chegada em'}
+            </Text>
             <Text style={styles.cellValue}>{formatMinutes(bus.etaNextStopMin)}</Text>
+            {nextTarget.name ? (
+              <Text style={styles.cellCaption} numberOfLines={1}>
+                {nextTarget.name}
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.cell}>
@@ -70,16 +83,20 @@ export function StatusCards({ bus, approaching }: StatusCardsProps) {
   );
 }
 
-function ApproachingCard({ info }: { info: ApproachingInfo }) {
-  const pois = topRatedPois(info.stop);
+function StopCard({ highlight }: { highlight: StopHighlight }) {
+  const pois = topRatedPois(highlight.stop);
+  const title =
+    highlight.kind === 'approaching' ? `Parada em ${highlight.inMinutes} min` : 'Parada agora';
+  const meta =
+    highlight.kind === 'approaching'
+      ? `Parada prevista de ${highlight.stop.scheduledDwellMin} min`
+      : dwellMeta(highlight.dwellMinutes, highlight.minutesLeft);
 
   return (
-    <View style={[styles.card, styles.approachingCard]}>
-      <Text style={styles.approachingTitle}>Parada em {info.inMinutes} min</Text>
-      <Text style={styles.approachingStopName}>{info.stop.name}</Text>
-      <Text style={styles.approachingDwell}>
-        Parada prevista de {info.stop.scheduledDwellMin} min
-      </Text>
+    <View style={[styles.card, styles.stopCard]}>
+      <Text style={styles.stopTitle}>{title}</Text>
+      <Text style={styles.stopName}>{highlight.stop.name}</Text>
+      <Text style={styles.stopMeta}>{meta}</Text>
       {pois.length > 0 ? (
         <View style={styles.poiList}>
           <Text style={styles.poiHeader}>Bem avaliados na parada</Text>
@@ -95,6 +112,11 @@ function ApproachingCard({ info }: { info: ApproachingInfo }) {
       ) : null}
     </View>
   );
+}
+
+function dwellMeta(dwellMinutes: number, minutesLeft: number | null): string {
+  const permanence = `Permanência de ${dwellMinutes} min`;
+  return minutesLeft == null ? permanence : `${permanence} · saída em ${minutesLeft} min`;
 }
 
 const styles = StyleSheet.create({
@@ -124,6 +146,11 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginTop: spacing.xs,
   },
+  cellCaption: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
   onTime: {
     color: colors.accent.success,
     fontSize: 20,
@@ -145,20 +172,20 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginTop: spacing.xs,
   },
-  approachingCard: {
+  stopCard: {
     borderWidth: 1.5,
     borderColor: colors.accent.primary,
   },
-  approachingTitle: {
+  stopTitle: {
     ...typography.title,
     color: colors.accent.primary,
   },
-  approachingStopName: {
+  stopName: {
     ...typography.subtitle,
     color: colors.text.primary,
     marginTop: spacing.xs,
   },
-  approachingDwell: {
+  stopMeta: {
     ...typography.caption,
     color: colors.text.secondary,
     marginTop: 2,

@@ -1,8 +1,8 @@
 import type { Poi, Stop } from '@jornada/shared';
 
 /**
- * Extrai HH:mm direto da string ISO para preservar o relogio simulado da
- * demo (offset -03:00), sem depender do fuso do dispositivo.
+ * Reads HH:mm straight from the ISO string so the demo's simulated clock
+ * (offset -03:00) is preserved regardless of the device timezone.
  */
 export function formatSimClock(iso: string | null): string | null {
   if (!iso) {
@@ -26,4 +26,21 @@ export function formatRating(rating: number): string {
 
 export function topRatedPois(stop: Stop, count = 3): Poi[] {
   return [...stop.pois].sort((a, b) => b.rating - a.rating).slice(0, count);
+}
+
+/**
+ * Minutes elapsed between two scenario timestamps. Both carry an explicit
+ * offset, so the difference is timezone independent. Returns null when either
+ * timestamp is missing or unparseable.
+ */
+export function simMinutesBetween(fromIso: string | null, toIso: string | null): number | null {
+  if (!fromIso || !toIso) {
+    return null;
+  }
+  const from = Date.parse(fromIso);
+  const to = Date.parse(toIso);
+  if (Number.isNaN(from) || Number.isNaN(to)) {
+    return null;
+  }
+  return Math.round((to - from) / 60_000);
 }

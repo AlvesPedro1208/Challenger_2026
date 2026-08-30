@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Polyline, type LatLng, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,7 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   selectApproachingStop,
   selectBus,
+  selectClockIso,
+  selectDwell,
   selectPhase,
+  selectStops,
+  selectTrafficAlert,
   selectTrip,
   useJourneyStore,
 } from '@/state/store';
@@ -14,23 +18,37 @@ import { colors, radii, spacing, typography } from '@/theme/tokens';
 import { ROUTE_POINTS, STOPS } from '@jornada/shared';
 
 import { BusMarker } from './BusMarker';
-import { StatusCards } from './StatusCards';
+import { StatusCards, type NextTarget, type StopHighlight } from './StatusCards';
 import { StopMarkers } from './StopMarkers';
+import { TrafficAlertCard } from './TrafficAlertCard';
 import { WaitingCard } from './WaitingCard';
+import { simMinutesBetween } from './formatters';
+import { remainingStops } from './routeProgress';
 
 const TRACKING_DELTA = 0.45;
 const RECENTER_MS = 900;
 const FIT_PADDING = { top: 96, right: 48, bottom: 280, left: 48 };
+
+/** Simulated clock reading of the moment the bus stopped at a support stop. */
+type DwellStart = { stopId: string; startIso: string | null };
 
 export function MapScreen() {
   const insets = useSafeAreaInsets();
   const phase = useJourneyStore(selectPhase);
   const bus = useJourneyStore(selectBus);
   const approaching = useJourneyStore(selectApproachingStop);
+  const dwell = useJourneyStore(selectDwell);
+  const clockIso = useJourneyStore(selectClockIso);
+  const storeStops = useJourneyStore(selectStops);
+  const trafficAlert = useJourneyStore(selectTrafficAlert);
   const trip = useJourneyStore(selectTrip);
 
   const mapRef = useRef<MapView>(null);
   const mapReadyRef = useRef(false);
+
+  // The bootstrap (or its offline cache) owns the stops; the bundled dataset is
+  // only a fallback for a cold start with no data yet.
+  const stops = storeStops.length > 0 ? storeStops : STOPS;
 
   const onboard = phase === 'ONBOARD' || phase === 'ARRIVED';
   const tracking = onboard && bus.position != null;
@@ -55,13 +73,52 @@ export function MapScreen() {
     };
   }, []);
 
-  const approachingInfo = useMemo(() => {
-    if (!approaching) {
-      return null;
+  // The store clears `dwell` only on the next stop or on arrival, so the screen
+  // remembers when the dwell started and drops the card once it is over.
+  const [dwellStart, setDwellStart] = useState<DwellStart | null>(null);
+
+  if ((dwell?.stopId ?? null) !== (dwellStart?.stopId ?? null)) {
+    setDwellStart(dwell ? { stopId: dwell.stopId, startIso: clockIso } : null);
+  }
+
+  const dwellElapsedMin =
+    dwell && dwellStart?.stopId === dwell.stopId
+      ? simMinutesBetween(dwellStart.startIso, clockIso)
+      : null;
+
+  const highlight = useMemo<StopHighlight | null>(() => {
+    if (approaching) {
+      const stop = stops.find((candidate) => candidate.id === approaching.stopId);
+      if (stop) {
+        return { kind: 'approaching', stop, inMinutes: approaching.inMinutes };
+      }
     }
-    const stop = STOPS.find((candidate) => candidate.id === approaching.stopId);
-    return stop ? { stop, inMinutes: approaching.inMinutes } : null;
-  }, [approaching]);
+
+    if (dwell) {
+      const stop = stops.find((candidate) => candidate.id === dwell.stopId);
+      const stillStopped = dwellElapsedMin == null || dwellElapsedMin < dwell.dwellMinutes;
+      if (stop && stillStopped) {
+        return {
+          kind: 'dwell',
+          stop,
+          dwellMinutes: dwell.dwellMinutes,
+          minutesLeft:
+            dwellElapsedMin == null ? null : Math.max(0, dwell.dwellMinutes - dwellElapsedMin),
+        };
+      }
+    }
+
+    return null;
+  }, [approaching, dwell, stops, dwellElapsedMin]);
+
+  // etaNextStopMin counts down to the next support stop while one is ahead, and
+  // to the destination once they are all behind the bus.
+  const nextTarget = useMemo<NextTarget>(() => {
+    const [next] = remainingStops(stops, bus.position);
+    return next
+      ? { kind: 'stop', name: next.name }
+      : { kind: 'destination', name: trip?.destination ?? null };
+  }, [stops, bus.position, trip]);
 
   const fitRoute = useCallback(
     (animated: boolean) => {
@@ -125,32 +182,39 @@ export function MapScreen() {
           strokeColor={colors.accent.primary}
           strokeWidth={4}
         />
-        <StopMarkers stops={STOPS} />
+        <StopMarkers stops={stops} />
         {tracking && bus.position ? <BusMarker position={bus.position} /> : null}
       </MapView>
 
       <View style={[styles.header, { top: insets.top + spacing.sm }]} pointerEvents="none">
-        <View style={styles.headerCard}>
-          <Text style={styles.headerTitle}>Onde está meu ônibus?</Text>
-          {trip ? (
-            <Text style={styles.headerRoute}>
-              {trip.origin} {'→'} {trip.destination}
-            </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerCard}>
+            <Text style={styles.headerTitle}>Onde está meu ônibus?</Text>
+            {trip ? (
+              <Text style={styles.headerRoute}>
+                {trip.origin} {'→'} {trip.destination}
+              </Text>
+            ) : null}
+          </View>
+          {tracking ? (
+            <View style={styles.livePill}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveLabel}>Ao vivo</Text>
+            </View>
           ) : null}
         </View>
-        {tracking ? (
-          <View style={styles.livePill}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveLabel}>Ao vivo</Text>
-          </View>
-        ) : null}
+        {trafficAlert ? <TrafficAlertCard alert={trafficAlert} /> : null}
       </View>
 
       <View
         style={[styles.footer, { bottom: insets.bottom + spacing.md }]}
         pointerEvents="box-none"
       >
-        {tracking ? <StatusCards bus={bus} approaching={approachingInfo} /> : <WaitingCard />}
+        {tracking ? (
+          <StatusCards bus={bus} highlight={highlight} nextTarget={nextTarget} />
+        ) : (
+          <WaitingCard />
+        )}
       </View>
     </View>
   );
@@ -165,6 +229,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.md,
     right: spacing.md,
+    gap: spacing.sm,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
@@ -211,5 +278,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.md,
     right: spacing.md,
+    gap: spacing.sm,
   },
 });
