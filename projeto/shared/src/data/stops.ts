@@ -18,7 +18,7 @@ export const STOPS: Stop[] = [
       },
       {
         id: "poi-ap-02",
-        name: "Cafe do Ponto Express",
+        name: "Café do Ponto Express",
         category: "coffee",
         rating: 4.2,
         priceLevel: 2,
@@ -32,14 +32,14 @@ export const STOPS: Stop[] = [
       },
       {
         id: "poi-ap-04",
-        name: "Loja de Conveniencia AmPm",
+        name: "Loja de Conveniência AmPm",
         category: "convenience",
         rating: 4.1,
         priceLevel: 2,
       },
       {
         id: "poi-ap-05",
-        name: "Doces da Basilica",
+        name: "Doces da Basílica",
         category: "food",
         rating: 4.7,
         priceLevel: 2,
@@ -62,7 +62,7 @@ export const STOPS: Stop[] = [
       },
       {
         id: "poi-re-02",
-        name: "Cafeteria Grao da Serra",
+        name: "Cafeteria Grão da Serra",
         category: "coffee",
         rating: 4.5,
         priceLevel: 2,
@@ -76,7 +76,7 @@ export const STOPS: Stop[] = [
       },
       {
         id: "poi-re-04",
-        name: "Conveniencia BR Mania",
+        name: "Conveniência BR Mania",
         category: "convenience",
         rating: 3.9,
         priceLevel: 2,

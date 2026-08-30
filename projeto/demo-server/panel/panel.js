@@ -10,7 +10,14 @@
   var LOG_LIMIT = 200;
   var POLL_MS = 2000;
 
+  // Departure of the demo trip (shared/src/data/trip.ts). The refund deadline
+  // is derived from the simulated clock, capped at departure, so the scene is
+  // never fired already expired.
+  var DEPARTURE_ISO = "2026-09-13T22:30:00-03:00";
+  var REFUND_WINDOW_MS = 60 * 60 * 1000;
+
   var engineState = null;
+  var activePhase = null;
 
   var el = {
     wsDot: document.getElementById("ws-dot"),
@@ -27,17 +34,32 @@
 
   // ---------------------------------------------------------------- helpers
 
-  // Normaliza para o fuso da demo (São Paulo, UTC-03:00) para que o carimbo
-  // `at` dos eventos disparados case com os horários do roteiro.
+  // Normalize to the demo timezone (Sao Paulo, UTC-03:00) so the `at` stamp of
+  // fired events matches the times written in the scenario script.
   function toSaoPauloIso(ms) {
     return new Date(ms - 3 * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, "-03:00");
   }
 
-  function simNowIso() {
+  /** Current simulated time in epoch ms, falling back to wall time. */
+  function simNowMs() {
     var iso = engineState && engineState.clockIso;
     var ms = iso ? Date.parse(iso) : NaN;
-    if (Number.isNaN(ms)) ms = Date.now();
-    return toSaoPauloIso(ms);
+    return Number.isNaN(ms) ? Date.now() : ms;
+  }
+
+  function simNowIso() {
+    return toSaoPauloIso(simNowMs());
+  }
+
+  /**
+   * Refund deadline relative to the simulated clock: one hour ahead, never past
+   * departure, and never in the past even if the clock is already past it.
+   */
+  function refundDeadlineIso() {
+    var nowMs = simNowMs();
+    var deadlineMs = Math.min(nowMs + REFUND_WINDOW_MS, Date.parse(DEPARTURE_ISO));
+    if (deadlineMs <= nowMs) deadlineMs = nowMs + REFUND_WINDOW_MS;
+    return toSaoPauloIso(deadlineMs);
   }
 
   // Keeps the simulated wall time as written in the ISO string (offset intact),
@@ -63,7 +85,7 @@
     second: "2-digit",
   });
 
-  // O engine devolve clockIso em UTC; a demo acontece em São Paulo.
+  // The engine returns clockIso in UTC; the demo happens in Sao Paulo.
   function engineClockLabel(iso) {
     if (typeof iso !== "string") return "—";
     var ms = Date.parse(iso);
@@ -81,7 +103,7 @@
     }, 5000);
   }
 
-  // ---------------------------------------------------------------- comandos
+  // ---------------------------------------------------------------- commands
 
   function sendCommand(command, okMessage) {
     return fetch(API_BASE + "/api/command", {
@@ -155,7 +177,6 @@
 
   // -------------------------------------------------------------- websocket
 
-  var ws = null;
   var wsRetryMs = 1000;
   var wsWasConnected = false;
 
@@ -166,34 +187,37 @@
 
   function connectWs() {
     setWsStatus(false, "conectando...");
-    ws = new WebSocket(WS_URL);
+    // Handlers close over this socket, so a late error or close from a socket
+    // replaced by a reconnect never acts on the current one.
+    var socket = new WebSocket(WS_URL);
 
-    ws.onopen = function () {
+    socket.onopen = function () {
       wsRetryMs = 1000;
       setWsStatus(true, "conectado");
       if (wsWasConnected) toast("Conexão com o servidor restabelecida", true);
       wsWasConnected = true;
     };
 
-    ws.onmessage = function (msg) {
+    socket.onmessage = function (msg) {
       var event;
       try {
         event = JSON.parse(msg.data);
       } catch (_err) {
         return;
       }
+      if (event.type === "PHASE_CHANGE") setActivePhase(event.phase);
       appendLog(event);
     };
 
-    ws.onclose = function () {
+    socket.onclose = function () {
       if (wsWasConnected) toast("Conexão WebSocket perdida, reconectando...");
       setWsStatus(false, "reconectando em " + Math.round(wsRetryMs / 1000) + "s");
       setTimeout(connectWs, wsRetryMs);
       wsRetryMs = Math.min(wsRetryMs * 2, 10000);
     };
 
-    ws.onerror = function () {
-      ws.close();
+    socket.onerror = function () {
+      socket.close();
     };
   }
 
@@ -329,14 +353,12 @@
 
   document.getElementById("btn-clear-log").addEventListener("click", showEmptyLog);
 
-  // Rolar manualmente desativa o "seguir"; voltar ao topo reativa.
+  // Scrolling away from the top turns "seguir" off; scrolling back on again.
   el.log.addEventListener("scroll", function () {
-    if (el.log.scrollTop > 4) {
-      el.logFollow.checked = false;
-    }
+    el.logFollow.checked = el.log.scrollTop <= 4;
   });
 
-  // -------------------------------------------------------------- controles
+  // --------------------------------------------------------------- controls
 
   document.getElementById("btn-start").addEventListener("click", function () {
     sendCommand(
@@ -369,7 +391,7 @@
       toast("Escolha uma data e hora antes de definir o relógio");
       return;
     }
-    // O input não carrega fuso; a demo acontece em São Paulo (UTC-03:00).
+    // The input carries no timezone; the demo happens in Sao Paulo (UTC-03:00).
     var isoTime = value.length === 16 ? value + ":00-03:00" : value + "-03:00";
     sendCommand(
       { type: "SET_CLOCK", isoTime: isoTime },
@@ -377,9 +399,18 @@
     );
   });
 
-  // ----------------------------------------------------------------- cenas
-  // Payloads espelham os tipos de shared/src/events.ts e o roteiro
-  // sp-rio-nightly (shared/src/scenario.ts).
+  // ---------------------------------------------------------------- scenes
+  // Payloads mirror the types in shared/src/events.ts and the sp-rio-nightly
+  // script (shared/src/scenario.ts); user-facing copy must stay identical to
+  // the script so panel-driven and auto-play demos read the same.
+
+  /** Highlight the phase button matching the last PHASE_CHANGE seen on the wire. */
+  function setActivePhase(phase) {
+    activePhase = phase;
+    document.querySelectorAll(".btn-phase").forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.phase === activePhase);
+    });
+  }
 
   document.querySelectorAll(".btn-phase").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -409,7 +440,7 @@
       riskPct: 38,
       canRebook: true,
       rebookFeeBRL: 20,
-      refundDeadlineIso: "2026-09-13T21:30:00-03:00",
+      refundDeadlineIso: refundDeadlineIso(),
       refundRetentionPct: 5,
     });
   });

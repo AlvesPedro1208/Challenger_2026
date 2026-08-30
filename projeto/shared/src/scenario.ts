@@ -81,7 +81,7 @@ const scriptedSteps: ScenarioStep[] = [
     at: at('20:05'),
     severity: 'moderate',
     etaToTerminalMin: 52,
-    message: 'Acidente na Marginal Tiete: transito intenso no caminho ate o terminal',
+    message: 'Acidente na Marginal Tietê: trânsito intenso no caminho até o terminal',
   }),
   step(10, {
     type: 'RISK_UPDATE',
@@ -150,6 +150,6 @@ const scriptedSteps: ScenarioStep[] = [
 
 export const spRioScenario: Scenario = {
   id: 'sp-rio-nightly',
-  title: 'Sao Paulo (Tiete) - Rio de Janeiro (Novo Rio), 22:30',
+  title: 'São Paulo (Tietê) - Rio de Janeiro (Novo Rio), 22:30',
   steps: [...scriptedSteps, ...telemetrySteps].sort((a, b) => a.afterMs - b.afterMs),
 };
