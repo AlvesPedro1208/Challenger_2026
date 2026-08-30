@@ -28,7 +28,10 @@ export function TicketScreen() {
 
   const currentPlatform = platform.current ?? trip?.platform ?? '—';
   const delayed = bus.delayMin > 0;
-  const isOffline = connection === 'offline';
+  // Airplane mode settles on 'autoplay' (the WS client gives up and hands over
+  // to the embedded scenario), so anything other than a live panel connection
+  // means the ticket is being served from the device.
+  const isOffline = connection !== 'panel';
 
   if (!trip || !ticket) {
     return (
