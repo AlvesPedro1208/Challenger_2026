@@ -86,7 +86,7 @@ export function ArrivalScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{getMealSectionTitle(period)}</Text>
           {mealPois.map((poi) => (
-            <PoiCard key={poi.id} poi={poi} />
+            <PoiCard key={poi.id} poi={poi} terminal={terminal} />
           ))}
         </View>
       ) : null}
@@ -95,7 +95,7 @@ export function ArrivalScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Serviços por perto</Text>
           {servicePois.map((poi) => (
-            <PoiCard key={poi.id} poi={poi} />
+            <PoiCard key={poi.id} poi={poi} terminal={terminal} />
           ))}
         </View>
       ) : null}
@@ -105,6 +105,10 @@ export function ArrivalScreen() {
       </View>
 
       <View style={styles.section}>
+        <PrimaryButton label="Ver o terminal no mapa" onPress={() => router.push('/map')} />
+      </View>
+
+      <View style={styles.secondaryAction}>
         <PrimaryButton
           label="Ver pontualidade desta rota"
           variant="purple"
@@ -130,7 +134,10 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
   section: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
+  },
+  secondaryAction: {
+    marginTop: spacing.sm,
   },
   sectionLabel: {
     ...typography.sectionLabel,

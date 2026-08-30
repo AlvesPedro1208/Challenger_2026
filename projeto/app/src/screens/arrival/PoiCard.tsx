@@ -1,49 +1,76 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Poi } from '@jornada/shared';
 
 import { Card } from '@/components/ui';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
-import { CATEGORY_LABELS, WELL_RATED_THRESHOLD } from './arrivalLogic';
+import { CATEGORY_LABELS, priceLevelLabel, WELL_RATED_THRESHOLD } from './arrivalLogic';
 
 type PoiCardProps = {
   poi: Poi;
+  /** Terminal the place sits around, used in the expanded detail. */
+  terminal: string | null;
 };
 
-export function PoiCard({ poi }: PoiCardProps) {
+export function PoiCard({ poi, terminal }: PoiCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const wellRated = poi.rating >= WELL_RATED_THRESHOLD;
   const fillPct = Math.min(100, Math.max(0, (poi.rating / 5) * 100));
+  const place = terminal ?? 'terminal';
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.topRow}>
-        <View style={styles.nameBlock}>
-          <Text style={styles.name} numberOfLines={1}>
-            {poi.name}
-          </Text>
-          <Text style={styles.category}>{CATEGORY_LABELS[poi.category]}</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${poi.name}, ${CATEGORY_LABELS[poi.category]}`}
+      accessibilityHint={expanded ? 'Toque para ocultar os detalhes' : 'Toque para ver os detalhes'}
+      accessibilityState={{ expanded }}
+      onPress={() => setExpanded((open) => !open)}
+      style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+    >
+      <Card>
+        <View style={styles.topRow}>
+          <View style={styles.nameBlock}>
+            <Text style={styles.name} numberOfLines={1}>
+              {poi.name}
+            </Text>
+            <Text style={styles.category}>{CATEGORY_LABELS[poi.category]}</Text>
+          </View>
+          {wellRated ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeLabel}>Bem avaliado</Text>
+            </View>
+          ) : null}
         </View>
-        {wellRated ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeLabel}>Bem avaliado</Text>
+        <View style={styles.ratingRow}>
+          <Text style={styles.ratingValue}>{poi.rating.toFixed(1)}</Text>
+          <View style={styles.ratingTrack}>
+            <View style={[styles.ratingFill, { width: `${fillPct}%` }]} />
+          </View>
+          <Text style={styles.ratingScale}>de 5</Text>
+        </View>
+        {expanded ? (
+          <View style={styles.detail}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Faixa de preço</Text>
+              <Text style={styles.detailValue}>{priceLevelLabel(poi.priceLevel)}</Text>
+            </View>
+            <Text style={styles.detailHint}>Fica nos arredores do {place}.</Text>
           </View>
         ) : null}
-      </View>
-      <View style={styles.ratingRow}>
-        <Text style={styles.ratingValue}>{poi.rating.toFixed(1)}</Text>
-        <View style={styles.ratingTrack}>
-          <View style={[styles.ratingFill, { width: `${fillPct}%` }]} />
-        </View>
-        <Text style={styles.ratingScale}>de 5</Text>
-      </View>
-    </Card>
+        <Text style={styles.toggle}>{expanded ? 'Ocultar detalhes' : 'Ver detalhes'}</Text>
+      </Card>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  pressable: {
     marginTop: spacing.sm,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   topRow: {
     flexDirection: 'row',
@@ -101,5 +128,35 @@ const styles = StyleSheet.create({
   ratingScale: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  detail: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm + 2,
+    borderTopWidth: 1,
+    borderTopColor: colors.hairline.onDark,
+    gap: spacing.xs,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  detailValue: {
+    ...typography.subtitle,
+    color: colors.text.primary,
+  },
+  detailHint: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  toggle: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.onTone.primary,
+    marginTop: spacing.sm + 2,
   },
 });

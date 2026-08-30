@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { Card } from '@/components/ui';
 import { colors, radii, spacing } from '@/theme/tokens';
 
 type BlockProps = {
@@ -34,39 +35,59 @@ export function StatsSkeleton() {
     return () => loop.stop();
   }, [pulse]);
 
+  // Placeholder blocks sit inside surface cards: the bone tone only reads as
+  // "loading" over a card, not straight over the screen background.
   return (
     <Animated.View style={{ opacity: pulse }}>
-      <Block height={22} width="55%" />
-      <Block height={14} width="75%" style={styles.gapSm} />
-      <View style={styles.hero}>
-        <Block height={12} width={110} />
-        <Block height={88} width={150} style={styles.gapSm} />
-        <Block height={26} width={140} style={styles.gapSm} />
-      </View>
+      <Card>
+        <Block height={26} width="60%" />
+        <Block height={14} width="80%" style={styles.gapSm} />
+        <View style={styles.hero}>
+          <Block height={12} width={110} />
+          <Block height={88} width={150} style={styles.gapSm} />
+          <Block height={26} width={140} style={styles.gapSm} />
+        </View>
+      </Card>
       <View style={styles.row}>
-        <Block height={104} style={styles.half} />
-        <Block height={104} style={styles.half} />
+        <Card style={styles.half}>
+          <Block height={12} width="70%" />
+          <Block height={34} width="55%" style={styles.gapSm} />
+        </Card>
+        <Card style={styles.half}>
+          <Block height={12} width="70%" />
+          <Block height={34} width="55%" style={styles.gapSm} />
+        </Card>
       </View>
-      <Block height={64} style={styles.gapSm} />
-      <Block height={210} style={styles.gapMd} />
-      <Block height={190} style={styles.gapMd} />
+      <Card style={styles.gapSm}>
+        <Block height={12} width="50%" />
+        <Block height={24} width="40%" style={styles.gapSm} />
+      </Card>
+      <Card style={styles.gapMd}>
+        <Block height={12} width="60%" />
+        <Block height={150} style={styles.gapMd} />
+      </Card>
+      <Card style={styles.gapMd}>
+        <Block height={12} width="60%" />
+        <Block height={130} style={styles.gapMd} />
+      </Card>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   block: {
-    backgroundColor: colors.bg.surface,
+    backgroundColor: colors.bone.onDark,
     borderRadius: radii.md,
   },
   hero: {
     alignItems: 'center',
-    marginVertical: spacing.lg,
+    marginTop: spacing.lg,
     gap: spacing.xs,
   },
   row: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   half: {
     flex: 1,

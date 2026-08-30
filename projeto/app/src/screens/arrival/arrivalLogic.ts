@@ -78,6 +78,12 @@ export const CATEGORY_LABELS: Record<PoiCategory, string> = {
   other: 'Transporte',
 };
 
+/** Price range as currency signs, clamped to the 1-4 scale of the dataset. */
+export function priceLevelLabel(priceLevel: number): string {
+  const level = Math.min(4, Math.max(1, Math.round(priceLevel)));
+  return '$'.repeat(level);
+}
+
 export interface DestinationParts {
   city: string;
   terminal: string | null;

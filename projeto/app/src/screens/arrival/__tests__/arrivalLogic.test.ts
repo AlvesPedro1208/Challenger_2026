@@ -10,6 +10,7 @@ import {
   getMealPeriod,
   getMealSectionTitle,
   parseDestination,
+  priceLevelLabel,
   tripDurationHours,
   welcomeMessage,
 } from '../arrivalLogic';
@@ -76,6 +77,19 @@ describe('filterServicePois', () => {
   it('reúne farmácia, conveniência e transporte', () => {
     const categories = filterServicePois(NOVO_RIO_POIS).map((poi) => poi.category);
     expect(categories).toEqual(expect.arrayContaining(['pharmacy', 'convenience', 'other']));
+  });
+});
+
+describe('priceLevelLabel', () => {
+  it('traduz a faixa de preço em cifrões', () => {
+    expect(priceLevelLabel(1)).toBe('$');
+    expect(priceLevelLabel(2)).toBe('$$');
+    expect(priceLevelLabel(4)).toBe('$$$$');
+  });
+
+  it('limita valores fora da escala de 1 a 4', () => {
+    expect(priceLevelLabel(0)).toBe('$');
+    expect(priceLevelLabel(9)).toBe('$$$$');
   });
 });
 

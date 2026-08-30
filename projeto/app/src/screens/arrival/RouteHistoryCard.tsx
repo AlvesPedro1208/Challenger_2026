@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   footnote: {
     ...typography.caption,
-    color: colors.accent.purple,
+    color: colors.text.secondary,
     marginTop: spacing.md,
     textAlign: 'center',
   },

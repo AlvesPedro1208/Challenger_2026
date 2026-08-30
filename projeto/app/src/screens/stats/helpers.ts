@@ -27,6 +27,22 @@ export function onTimePct(histogram: DelayHistogramBucket[]): number {
   return Math.round((onTime * 100) / total);
 }
 
+/** Slack advice is given in whole 5-minute steps so it reads as a plan, not a number. */
+const BUFFER_STEP_MIN = 5;
+
+/**
+ * Minutes of slack to keep after the scheduled arrival: the expected delay
+ * (risk x average delay), rounded up to the next 5-minute step. Zero when the
+ * route has no risk or no delay to expect.
+ */
+export function recommendedBufferMin(riskPct: number, avgDelayMin: number): number {
+  const risk = Math.min(100, Math.max(0, riskPct));
+  const delay = Math.max(0, avgDelayMin);
+  const expected = (risk / 100) * delay;
+  if (expected <= 0) return 0;
+  return Math.ceil(expected / BUFFER_STEP_MIN) * BUFFER_STEP_MIN;
+}
+
 /** Index of the bucket with the highest count (the histogram's dominant bar). */
 export function dominantBucketIndex(histogram: DelayHistogramBucket[]): number {
   let best = 0;

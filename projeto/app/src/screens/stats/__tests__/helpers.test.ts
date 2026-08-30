@@ -9,6 +9,7 @@ import {
   formatShortDate,
   maxPointIndex,
   onTimePct,
+  recommendedBufferMin,
   reliabilityLabel,
   riskTone,
   worstObservedBucket,
@@ -54,6 +55,29 @@ describe('onTimePct', () => {
 
   it('returns 0 for an empty histogram', () => {
     expect(onTimePct([])).toBe(0);
+  });
+});
+
+describe('recommendedBufferMin', () => {
+  it('turns risk and average delay into a 5-minute buffer step', () => {
+    // 34% x 22 min = 7.48 min of expected delay -> 10 min of slack.
+    expect(recommendedBufferMin(34, 22)).toBe(10);
+    expect(recommendedBufferMin(60, 25)).toBe(15);
+  });
+
+  it('keeps an exact multiple of five as it is', () => {
+    expect(recommendedBufferMin(100, 20)).toBe(20);
+  });
+
+  it('is zero when there is no risk or no delay to expect', () => {
+    expect(recommendedBufferMin(0, 30)).toBe(0);
+    expect(recommendedBufferMin(40, 0)).toBe(0);
+  });
+
+  it('clamps out-of-range inputs instead of propagating them', () => {
+    expect(recommendedBufferMin(-10, 30)).toBe(0);
+    expect(recommendedBufferMin(40, -30)).toBe(0);
+    expect(recommendedBufferMin(150, 20)).toBe(20);
   });
 });
 

@@ -59,10 +59,10 @@ export function DelaySparkline({ series }: DelaySparklineProps) {
               y1={CHART_HEIGHT - PADDING_BOTTOM}
               x2={width}
               y2={CHART_HEIGHT - PADDING_BOTTOM}
-              stroke="rgba(185, 179, 196, 0.25)"
+              stroke={`${colors.text.secondary}40`}
               strokeWidth={1}
             />
-            <Polygon points={areaPoints} fill="rgba(124, 58, 237, 0.14)" />
+            <Polygon points={areaPoints} fill={`${colors.accent.purple}24`} />
             <Polyline
               points={linePoints}
               fill="none"
@@ -77,7 +77,7 @@ export function DelaySparkline({ series }: DelaySparklineProps) {
                   cx={peakX}
                   cy={peakY}
                   r={7}
-                  fill="rgba(230, 19, 90, 0.25)"
+                  fill={`${colors.accent.primary}40`}
                 />
                 <Circle cx={peakX} cy={peakY} r={4} fill={colors.accent.primary} />
               </>
@@ -118,6 +118,8 @@ const styles = StyleSheet.create({
   },
   legendPeak: {
     ...typography.caption,
-    color: colors.accent.primary,
+    fontWeight: '700',
+    // Raw pink is 4.0:1 on the card; the lightened tone clears AA at this size.
+    color: colors.onTone.primary,
   },
 });

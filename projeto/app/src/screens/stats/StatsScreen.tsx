@@ -1,6 +1,8 @@
+import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Screen } from '@/components/ui';
+import { PrimaryButton, Screen } from '@/components/ui';
+import { navigateBack } from '@/navigation';
 import {
   selectDailySeries,
   selectStats,
@@ -14,9 +16,11 @@ import { DelaySparkline } from './DelaySparkline';
 import { cityName } from './helpers';
 import { HeroRisk } from './HeroRisk';
 import { MetricCards } from './MetricCards';
+import { NextActionCard } from './NextActionCard';
 import { StatsSkeleton } from './StatsSkeleton';
 
 export function StatsScreen() {
+  const router = useRouter();
   const stats = useJourneyStore(selectStats);
   const dailySeries = useJourneyStore(selectDailySeries);
   const trip = useJourneyStore(selectTrip);
@@ -39,7 +43,9 @@ export function StatsScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>Pontualidade do trecho</Text>
+      <Text accessibilityRole="header" style={styles.title}>
+        Pontualidade do trecho
+      </Text>
       {routeLabel ? <Text style={styles.route}>{routeLabel}</Text> : null}
       <Text style={styles.meta}>{metaLabel}</Text>
 
@@ -59,6 +65,14 @@ export function StatsScreen() {
         </View>
       ) : null}
 
+      <View style={styles.section}>
+        <NextActionCard riskPct={riskPct} avgDelayMin={avgDelayMin} />
+      </View>
+
+      <View style={styles.section}>
+        <PrimaryButton label="Voltar para a viagem" onPress={() => navigateBack(router)} />
+      </View>
+
       <Text style={styles.footnote}>
         Estimativas com base no histórico do trecho. Números atualizados a cada viagem
         concluída.
@@ -69,12 +83,13 @@ export function StatsScreen() {
 
 const styles = StyleSheet.create({
   title: {
-    ...typography.title,
+    ...typography.display,
     color: colors.text.primary,
   },
   route: {
     ...typography.subtitle,
-    color: colors.accent.primary,
+    // Raw pink only reaches 4.0:1 on the dark background; the lightened tone clears AA.
+    color: colors.onTone.primary,
     marginTop: spacing.xs,
   },
   meta: {

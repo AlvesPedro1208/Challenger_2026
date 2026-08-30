@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.purple,
   },
   barMuted: {
-    backgroundColor: 'rgba(124, 58, 237, 0.28)',
+    backgroundColor: `${colors.accent.purple}47`,
   },
   bucketLabel: {
     fontSize: 10,
