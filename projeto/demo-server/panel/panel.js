@@ -257,6 +257,21 @@
     ARRIVAL: "stop",
   };
 
+  // Events carry opaque ids; the operator log reads better with the names the
+  // app shows. Kept inline because the panel has no build step - the values
+  // mirror shared/src/data/stops.ts and the terminal in shared/src/data/trip.ts,
+  // and demo-server/test/panel-copy.test.ts locks them to those datasets.
+  var PLACE_NAMES = {
+    "stop-aparecida": "Posto Frango Assado - Aparecida",
+    "stop-resende": "Graal Resende",
+    "novo-rio": "Terminal Novo Rio"
+  };
+
+  /** Readable name of a place id, falling back to the id when unmapped. */
+  function placeName(id) {
+    return PLACE_NAMES[id] || id;
+  }
+
   var PHASE_LABELS = {
     HOME: "Em casa",
     EN_ROUTE_TERMINAL: "A caminho do terminal",
@@ -317,11 +332,15 @@
       case "DELAY_UPDATE":
         return "Atraso de " + event.delayMin + " min — " + event.reason;
       case "STOP_APPROACHING":
-        return "Aproximando de " + event.stopId + " em " + event.inMinutes + " min";
+        return (
+          "Aproximando de " + placeName(event.stopId) + " em " + event.inMinutes + " min"
+        );
       case "STOP_DWELL":
-        return "Parado em " + event.stopId + " por " + event.dwellMinutes + " min";
+        return (
+          "Parado em " + placeName(event.stopId) + " por " + event.dwellMinutes + " min"
+        );
       case "ARRIVAL":
-        return "Chegada ao terminal " + event.terminalId;
+        return "Chegada ao " + placeName(event.terminalId);
       default:
         return JSON.stringify(event);
     }

@@ -14,10 +14,14 @@ import { colors } from '@/theme/tokens';
 /** Short retry budget so auto-play takes over within seconds if the Wi-Fi is down. */
 const WS_MAX_ATTEMPTS = 3;
 
+/** Background retry interval, so a server started late still takes over. */
+const WS_BACKGROUND_RETRY_MS = 15000;
+
 /**
  * Boots the demo: offline cache first (so the ticket is there instantly),
  * then bootstrap data, then the live panel connection. If the socket gives
- * up, the embedded scenario plays the same events.
+ * up, the embedded scenario plays the same events; if the server shows up
+ * later, auto-play stops and the panel takes the demo back.
  */
 function useDemoBoot(): boolean {
   const [booting, setBooting] = useState(true);
@@ -40,8 +44,14 @@ function useDemoBoot(): boolean {
       cleanups.push(
         connectToDemoServer({
           maxAttempts: WS_MAX_ATTEMPTS,
+          retryIntervalMs: WS_BACKGROUND_RETRY_MS,
           onGiveUp: () => {
             if (!cancelled) startAutoplay();
+          },
+          onReconnected: () => {
+            // Panel events are already flowing; drop the scripted fallback so
+            // the two never drive the store at once.
+            if (!cancelled) stopAutoplay();
           },
         }),
       );

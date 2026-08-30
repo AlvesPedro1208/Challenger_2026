@@ -8,6 +8,9 @@ const SERVER_PORT = 4000;
 const DEFAULT_MAX_ATTEMPTS = 5;
 const MAX_BACKOFF_MS = 8000;
 
+/** Unlimited slow retry that runs once auto-play has taken over. */
+const DEFAULT_BACKGROUND_RETRY_MS = 15000;
+
 /**
  * In dev the demo server runs on the same machine as the Metro bundler, so its
  * host (from expo-constants) is the right target for both simulator and a
@@ -67,60 +70,91 @@ export interface ConnectionOptions {
   maxAttempts?: number;
   /** Called once when all attempts are exhausted (e.g. to start auto-play). */
   onGiveUp?: () => void;
+  /**
+   * Called whenever the background retry gets the panel back after a give-up,
+   * so the caller can stop auto-play and hand the demo to the server.
+   */
+  onReconnected?: () => void;
+  /** Interval of the unlimited background retry that follows a give-up. */
+  retryIntervalMs?: number;
 }
 
 /**
  * Connects to the demo server and feeds every valid event into the store.
  * Reconnects with exponential backoff; after maxAttempts consecutive failures
- * it settles on 'offline' and calls onGiveUp. Returns a disconnect function.
+ * it settles on 'offline' and calls onGiveUp once. From then on it keeps
+ * retrying in the background at retryIntervalMs, forever, so a server that only
+ * comes up after the app does still takes the demo over — every such recovery
+ * calls onReconnected. Returns a disconnect function.
  */
 export function connectToDemoServer(options: ConnectionOptions = {}): () => void {
   const url = options.url ?? wsUrl();
   const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? DEFAULT_BACKGROUND_RETRY_MS;
 
   let socket: WebSocket | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let attempts = 0;
   let closed = false;
+  // Sticky: once auto-play owns the demo, every later drop retries slowly
+  // instead of burning the short budget and calling onGiveUp a second time.
+  let gaveUp = false;
 
-  const open = (): void => {
+  const scheduleRetry = (delayMs: number): void => {
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(open, delayMs);
+  };
+
+  function open(): void {
     if (closed) return;
-    socket = new WebSocket(url);
+    // Handlers check identity, so a socket replaced by a retry can no longer
+    // feed the store or schedule connections of its own.
+    const current = new WebSocket(url);
+    socket = current;
 
-    socket.onopen = () => {
+    current.onopen = () => {
+      if (socket !== current || closed) return;
       attempts = 0;
       useJourneyStore.getState().setConnection('panel');
+      if (gaveUp) options.onReconnected?.();
     };
 
-    socket.onmessage = (message) => {
+    current.onmessage = (message) => {
+      if (socket !== current || closed) return;
       const event = parseDemoEvent(message.data);
       if (event) useJourneyStore.getState().applyEvent(event);
     };
 
-    socket.onerror = () => {
+    current.onerror = () => {
       // onclose always follows in RN; retry scheduling lives there.
     };
 
-    socket.onclose = () => {
-      if (closed) return;
+    current.onclose = () => {
+      if (socket !== current || closed) return;
       if (useJourneyStore.getState().connection === 'panel') {
         useJourneyStore.getState().setConnection('offline');
       }
-      attempts += 1;
-      if (attempts >= maxAttempts) {
-        options.onGiveUp?.();
+      if (gaveUp) {
+        scheduleRetry(retryIntervalMs);
         return;
       }
-      const backoffMs = Math.min(1000 * 2 ** (attempts - 1), MAX_BACKOFF_MS);
-      retryTimer = setTimeout(open, backoffMs);
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        gaveUp = true;
+        options.onGiveUp?.();
+        scheduleRetry(retryIntervalMs);
+        return;
+      }
+      scheduleRetry(Math.min(1000 * 2 ** (attempts - 1), MAX_BACKOFF_MS));
     };
-  };
+  }
 
   open();
 
   return () => {
     closed = true;
     if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
     socket?.close();
     socket = null;
   };

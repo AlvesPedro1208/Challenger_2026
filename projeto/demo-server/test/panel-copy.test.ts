@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { spRioScenario, STOPS, NOVO_RIO_POIS } from "@jornada/shared";
+import { spRioScenario, DEMO_TRIP, STOPS, NOVO_RIO_POIS } from "@jornada/shared";
 import type { DemoEvent } from "@jornada/shared";
 
 const panelSource = readFileSync(
@@ -80,5 +80,51 @@ describe("panel copy matches the scenario script", () => {
 
   it("derives the refund deadline from the simulated clock", () => {
     expect(panelSource).not.toMatch(/refundDeadlineIso:\s*"\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+/** The id -> name map the panel keeps inline (it has no build step). */
+function panelPlaceNames(): Record<string, string> {
+  const match = panelSource.match(/var PLACE_NAMES = (\{[\s\S]*?\n {2}\});/);
+  if (!match?.[1]) throw new Error("panel.js has no PLACE_NAMES map");
+  return JSON.parse(match[1].replace(/,(\s*})/, "$1")) as Record<string, string>;
+}
+
+describe("panel log names places instead of printing ids", () => {
+  it("maps every scenario stop id to its dataset name", () => {
+    const names = panelPlaceNames();
+    for (const stop of STOPS) {
+      expect(names[stop.id], `panel is missing a name for ${stop.id}`).toBe(stop.name);
+    }
+  });
+
+  it("maps the arrival terminal id to the trip destination terminal", () => {
+    const terminal = panelPlaceNames()["novo-rio"];
+    expect(terminal).toBeDefined();
+    expect(DEMO_TRIP.destination).toContain(terminal);
+  });
+
+  it("covers every place id the scenario puts on the wire", () => {
+    const names = panelPlaceNames();
+    for (const { event } of spRioScenario.steps) {
+      if (event.type === "STOP_APPROACHING" || event.type === "STOP_DWELL") {
+        expect(names[event.stopId], `no name for ${event.stopId}`).toBeTruthy();
+      }
+      if (event.type === "ARRIVAL") {
+        expect(names[event.terminalId], `no name for ${event.terminalId}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("summarizes stop and arrival events through the lookup", () => {
+    expect(panelSource).toContain("placeName(event.stopId)");
+    expect(panelSource).toContain("placeName(event.terminalId)");
+    expect(panelSource).not.toMatch(/\+\s*event\.stopId/);
+    expect(panelSource).not.toMatch(/\+\s*event\.terminalId/);
+  });
+
+  it("falls back to the raw id for an unknown place", () => {
+    expect(panelPlaceNames()["stop-unmapped"]).toBeUndefined();
+    expect(panelSource).toMatch(/PLACE_NAMES\[id\]\s*\|\|\s*id/);
   });
 });
