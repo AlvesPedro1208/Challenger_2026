@@ -24,7 +24,7 @@ export function onTimePct(histogram: DelayHistogramBucket[]): number {
   const total = histogram.reduce((sum, bucket) => sum + bucket.count, 0);
   if (total === 0) return 0;
   const onTime = histogram.slice(0, 2).reduce((sum, bucket) => sum + bucket.count, 0);
-  return Math.round((onTime / total) * 100);
+  return Math.round((onTime * 100) / total);
 }
 
 /** Índice do bucket com maior contagem (barra dominante do histograma). */
