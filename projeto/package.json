@@ -6,5 +6,10 @@
     "app",
     "demo-server",
     "shared"
-  ]
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present"
+  }
 }

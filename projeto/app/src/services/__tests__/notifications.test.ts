@@ -2,17 +2,19 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import { STOPS } from '@jornada/shared';
 
+import type { JourneySnapshot } from '@/state/store';
+import { initialJourneyState } from '@/state/store';
+
+import { diffNotifications } from '../notifications';
+
+// `jest.mock` is hoisted above the imports by babel-plugin-jest-hoist, so the
+// mock is registered before `../notifications` pulls in expo-notifications.
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
   scheduleNotificationAsync: jest.fn(),
 }));
-
-import type { JourneySnapshot } from '@/state/store';
-import { initialJourneyState } from '@/state/store';
-
-import { diffNotifications } from '../notifications';
 
 const snapshot = (patch: Partial<JourneySnapshot>): JourneySnapshot => ({
   ...initialJourneyState,

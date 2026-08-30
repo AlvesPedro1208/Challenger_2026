@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { spacing, typography } from '@/theme/tokens';
+import { typography } from '@/theme/tokens';
 
 const INK = '#1A1A1A';
 const INK_SOFT = '#6B6572';
