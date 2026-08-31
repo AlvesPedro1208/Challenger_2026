@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import type { IndoorMap, RouteStats, Stop, Ticket, Trip } from "@jornada/shared";
+import type { DailyDelayPoint, IndoorMap, RouteStats, Stop, Ticket, Trip } from "@jornada/shared";
 import { DEMO_TICKET, DEMO_TRIP } from "../data/trip";
 import { STOPS } from "../data/stops";
-import { ROUTE_STATS } from "../data/stats";
+import { DAILY_DELAY_SERIES, ROUTE_STATS } from "../data/stats";
 import { TIETE_INDOOR_MAP } from "../data/indoor";
 import type { SimClock } from "../engine/clock";
 
@@ -13,6 +13,8 @@ interface BootstrapPayload {
   stops: Stop[];
   stats: RouteStats;
   indoorMap: IndoorMap;
+  /** 60-day delay series plotted by the stats screen sparkline. */
+  dailySeries: DailyDelayPoint[];
   serverTimeIso: string;
 }
 
@@ -24,6 +26,7 @@ export function bootstrapRoutes(clock: SimClock) {
       stops: STOPS,
       stats: ROUTE_STATS,
       indoorMap: TIETE_INDOOR_MAP,
+      dailySeries: DAILY_DELAY_SERIES,
       serverTimeIso: clock.nowIso(),
     }));
   };

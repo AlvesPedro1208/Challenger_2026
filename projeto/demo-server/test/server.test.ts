@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { buildServer } from "../src/server";
 import { DEMO_TICKET, DEMO_TRIP } from "../src/data/trip";
 import { STOPS } from "../src/data/stops";
-import { ROUTE_STATS } from "../src/data/stats";
+import { DAILY_DELAY_SERIES, ROUTE_STATS } from "../src/data/stats";
 import { TIETE_INDOOR_MAP } from "../src/data/indoor";
 
 describe("demo-server routes", () => {
@@ -34,6 +34,13 @@ describe("demo-server routes", () => {
     expect(body.stats).toEqual(JSON.parse(JSON.stringify(ROUTE_STATS)));
     expect(body.indoorMap).toEqual(JSON.parse(JSON.stringify(TIETE_INDOOR_MAP)));
     expect(Number.isNaN(Date.parse(body.serverTimeIso as string))).toBe(false);
+  });
+
+  it("GET /api/bootstrap ships the 60-day series the stats screen plots", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/bootstrap" });
+    const body = res.json() as Record<string, unknown>;
+    expect(body.dailySeries).toEqual(JSON.parse(JSON.stringify(DAILY_DELAY_SERIES)));
+    expect(body.dailySeries).toHaveLength(60);
   });
 
   it("GET /api/bootstrap serverTimeIso follows the simulated clock", async () => {

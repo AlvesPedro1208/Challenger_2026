@@ -1,13 +1,22 @@
 import type { Stop } from "../models";
 
-/** Support stops along the Via Dutra used by the demo scenario. */
+/**
+ * Support stops along the Via Dutra used by the demo scenario.
+ *
+ * `scheduledDwellMin` is the number the approach card advertises and the dwell
+ * card counts down, so it must match the `dwellMinutes` of the STOP_DWELL step
+ * in `scenario.ts`. Both stops keep the scripted 20 minutes: the simulated
+ * timetable (Aparecida 01:36 -> 01:56, Resende 03:40 -> 04:00) is built on it,
+ * and stretching Aparecida to 25 would push the bus past its next telemetry
+ * anchor while still parked.
+ */
 export const STOPS: Stop[] = [
   {
     id: "stop-aparecida",
     name: "Posto Frango Assado - Aparecida",
     lat: -22.8486,
     lng: -45.2327,
-    scheduledDwellMin: 25,
+    scheduledDwellMin: 20,
     pois: [
       {
         id: "poi-ap-01",

@@ -5,6 +5,7 @@
  * identical events.
  */
 
+import { STOPS } from './data/stops';
 import type { DemoEvent } from './events';
 
 export interface ScenarioStep {
@@ -31,13 +32,32 @@ const step = (afterSec: number, event: DemoEvent): ScenarioStep => ({
 const ETA_ON_TIME = at('06:10', true);
 const ETA_DELAYED = at('06:35', true);
 
+/** Exact coordinates of a support stop, so a parked sample sits right on it. */
+const stopPoint = (stopId: string): { lat: number; lng: number } => {
+  const stop = STOPS.find((candidate) => candidate.id === stopId);
+  if (!stop) throw new Error(`Unknown stop in scenario: ${stopId}`);
+  return { lat: stop.lat, lng: stop.lng };
+};
+
+const APARECIDA = stopPoint('stop-aparecida');
+const RESENDE = stopPoint('stop-resende');
+
 // [afterSec, simTime, nextDay, lat, lng, speedKmh, heading, etaNextStopMin, etaDestinationIso]
 type TelemetryRow = [number, string, boolean, number, number, number, number, number, string];
 
-// Sampled on the Via Dutra polyline (see demo-server/src/data/route.ts) between
+// Sampled on the Via Dutra polyline (see shared/src/data/route.ts) between
 // Terminal Tiete and Novo Rio. etaNextStopMin counts minutes to the next
 // support stop (Aparecida at 01:36, then Resende at 03:40); once no stops
 // remain it counts minutes to the destination.
+//
+// Each dwell is bracketed by a pair of parked samples on the stop's own
+// coordinates: speed 0 and etaNextStopMin 0, so the screen shows a stopped bus
+// counting zero minutes to the stop it is sitting at instead of 85 km/h and the
+// next stop's ETA. The pair is also what buys the dwell real time on screen:
+// the players read `at` off the scripted steps, so spreading 20 simulated
+// minutes over 24 real seconds keeps the card up long enough to narrate the
+// POIs, while the samples right after the pair carry the bus past the stop in
+// the same tick the countdown hands over to the next target.
 const dutraTelemetry: TelemetryRow[] = [
   [62, '22:40', false, -23.4778, -46.5729, 52, 57, 176, ETA_ON_TIME],
   [68, '23:00', false, -23.4291, -46.483, 78, 62, 156, ETA_ON_TIME],
@@ -48,14 +68,19 @@ const dutraTelemetry: TelemetryRow[] = [
   [100, '00:45', true, -23.0637, -45.6418, 42, 71, 51, ETA_DELAYED],
   [106, '01:05', true, -22.9761, -45.5104, 87, 54, 31, ETA_DELAYED],
   [112, '01:25', true, -22.8846, -45.2812, 84, 59, 11, ETA_DELAYED],
-  [128, '02:00', true, -22.8008, -45.1934, 86, 56, 100, ETA_DELAYED],
-  [134, '02:30', true, -22.6653, -45.0089, 90, 61, 70, ETA_DELAYED],
-  [140, '03:10', true, -22.5311, -44.7722, 88, 72, 30, ETA_DELAYED],
-  [146, '03:40', true, -22.4708, -44.4512, 25, 78, 0, ETA_DELAYED],
-  [152, '04:30', true, -22.5386, -44.1032, 87, 86, 125, ETA_DELAYED],
-  [158, '05:20', true, -22.6423, -43.8878, 82, 96, 75, ETA_DELAYED],
-  [164, '05:55', true, -22.7461, -43.6997, 76, 101, 40, ETA_DELAYED],
-  [170, '06:25', true, -22.8983, -43.2093, 18, 118, 9, ETA_DELAYED],
+  // Aparecida: parked 01:36 -> 01:56 (the 20 min the stop dataset advertises).
+  [119, '01:36', true, APARECIDA.lat, APARECIDA.lng, 0, 59, 0, ETA_DELAYED],
+  [143, '01:56', true, APARECIDA.lat, APARECIDA.lng, 0, 59, 0, ETA_DELAYED],
+  [147, '02:00', true, -22.8008, -45.1934, 86, 56, 100, ETA_DELAYED],
+  [153, '02:30', true, -22.6653, -45.0089, 90, 61, 70, ETA_DELAYED],
+  [159, '03:10', true, -22.5311, -44.7722, 88, 72, 30, ETA_DELAYED],
+  // Resende: parked 03:40 -> 04:00.
+  [165, '03:40', true, RESENDE.lat, RESENDE.lng, 0, 78, 0, ETA_DELAYED],
+  [189, '04:00', true, RESENDE.lat, RESENDE.lng, 0, 78, 0, ETA_DELAYED],
+  [195, '04:30', true, -22.5386, -44.1032, 87, 86, 125, ETA_DELAYED],
+  [201, '05:20', true, -22.6423, -43.8878, 82, 96, 75, ETA_DELAYED],
+  [207, '05:55', true, -22.7461, -43.6997, 76, 101, 40, ETA_DELAYED],
+  [213, '06:25', true, -22.8983, -43.2093, 18, 118, 9, ETA_DELAYED],
 ];
 
 const telemetrySteps: ScenarioStep[] = dutraTelemetry.map(
@@ -129,13 +154,13 @@ const scriptedSteps: ScenarioStep[] = [
     stopId: 'stop-aparecida',
     dwellMinutes: 20,
   }),
-  step(144, {
+  step(163, {
     type: 'STOP_APPROACHING',
     at: at('03:32', true),
     stopId: 'stop-resende',
     inMinutes: 8,
   }),
-  step(148, {
+  step(167, {
     type: 'STOP_DWELL',
     at: at('03:40', true),
     stopId: 'stop-resende',
@@ -143,9 +168,9 @@ const scriptedSteps: ScenarioStep[] = [
   }),
 
   // Act 5 - arrival at Novo Rio
-  step(176, { type: 'CLOCK_SET', at: at('06:33', true), isoTime: at('06:33', true) }),
-  step(177, { type: 'PHASE_CHANGE', at: at('06:33', true), phase: 'ARRIVED' }),
-  step(179, { type: 'ARRIVAL', at: at('06:34', true), terminalId: 'novo-rio' }),
+  step(219, { type: 'CLOCK_SET', at: at('06:33', true), isoTime: at('06:33', true) }),
+  step(220, { type: 'PHASE_CHANGE', at: at('06:33', true), phase: 'ARRIVED' }),
+  step(222, { type: 'ARRIVAL', at: at('06:34', true), terminalId: 'novo-rio' }),
 ];
 
 export const spRioScenario: Scenario = {
