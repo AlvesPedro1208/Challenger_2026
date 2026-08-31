@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { DataSourceIndicator, useJourneyPhaseNavigation } from '@/navigation';
-import { startAutoplay, stopAutoplay } from '@/services/autoplay';
+import { resumeAutoplay, stopAutoplay } from '@/services/autoplay';
 import { runBootstrap } from '@/services/bootstrap';
 import { connectToDemoServer } from '@/services/connection';
 import { initNotifications, startNotificationBridge } from '@/services/notifications';
@@ -46,7 +46,9 @@ function useDemoBoot(): boolean {
           maxAttempts: WS_MAX_ATTEMPTS,
           retryIntervalMs: WS_BACKGROUND_RETRY_MS,
           onGiveUp: () => {
-            if (!cancelled) startAutoplay();
+            // Picks the script up at the act the store is already in, so a
+            // server lost mid-demo never rewinds the journey to the start.
+            if (!cancelled) resumeAutoplay();
           },
           onReconnected: () => {
             // Panel events are already flowing; drop the scripted fallback so

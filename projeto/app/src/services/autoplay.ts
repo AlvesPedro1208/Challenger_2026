@@ -1,12 +1,20 @@
-import type { BusTelemetryEvent, Scenario, ScenarioStep } from '@jornada/shared';
+import type { BusTelemetryEvent, DemoPhase, Scenario, ScenarioStep } from '@jornada/shared';
 import { haversineKm, pointAtFraction, ROUTE_POINTS, spRioScenario } from '@jornada/shared';
 
 import { useJourneyStore } from '@/state/store';
+
+/** Where the journey already is, as the store knows it. */
+export interface ResumePoint {
+  phase?: DemoPhase | null;
+  clockIso?: string | null;
+}
 
 export interface AutoplayOptions {
   scenario?: Scenario;
   /** Playback speed multiplier (2 = twice as fast). */
   speed?: number;
+  /** Point to pick the script up from; omitted plays the scenario from the top. */
+  resumeFrom?: ResumePoint;
 }
 
 let timers: ReturnType<typeof setTimeout>[] = [];
@@ -178,6 +186,72 @@ export function expandScenarioSteps(scenario: Scenario): ScenarioStep[] {
   return [...steps, ...interpolated].sort((a, b) => a.afterMs - b.afterMs);
 }
 
+interface ActStart {
+  phase: DemoPhase;
+  /** Index of the first step that belongs to the act. */
+  index: number;
+}
+
+/**
+ * Where each act begins: its PHASE_CHANGE, walked back over the CLOCK_SET
+ * steps that introduce it, so resuming an act never loses its clock.
+ */
+function actStarts(steps: ScenarioStep[]): ActStart[] {
+  const acts: ActStart[] = [];
+  for (let i = 0; i < steps.length; i += 1) {
+    const event = steps[i]!.event;
+    if (event.type !== 'PHASE_CHANGE') continue;
+    let index = i;
+    while (index > 0 && steps[index - 1]!.event.type === 'CLOCK_SET') index -= 1;
+    acts.push({ phase: event.phase, index });
+  }
+  return acts;
+}
+
+/**
+ * The clock as epoch ms, or null when it says nothing about the script: an
+ * unparsable stamp, or one outside the scenario (the server clock is wall time
+ * until the first CLOCK_SET, and wall time is not on this timeline).
+ */
+function clockOnTimeline(steps: ScenarioStep[], clockIso: string | null | undefined): number | null {
+  if (!clockIso) return null;
+  const clockMs = Date.parse(clockIso);
+  if (Number.isNaN(clockMs)) return null;
+  const first = Date.parse(steps[0]!.event.at);
+  const last = Date.parse(steps[steps.length - 1]!.event.at);
+  if (Number.isNaN(first) || Number.isNaN(last)) return null;
+  return clockMs < first || clockMs > last ? null : clockMs;
+}
+
+/**
+ * Index of the first step to play when the store already lived part of the
+ * journey. The phase picks the act — the coarse anchor that can always be
+ * trusted — and the clock advances inside it, skipping the steps whose
+ * simulated instant has already passed. Skipped events are NOT replayed: the
+ * store holds exactly what the server applied up to `clockIso`, so replaying
+ * them would duplicate events and drag `clockIso` backwards.
+ *
+ * Falls back to 0 (the whole scenario) when the phase is unknown, and to the
+ * start of the act when the clock is missing or off the scenario timeline.
+ */
+export function resumeStepIndex(steps: ScenarioStep[], resume: ResumePoint): number {
+  if (steps.length === 0) return 0;
+
+  const acts = actStarts(steps);
+  const actPos = resume.phase ? acts.findIndex((act) => act.phase === resume.phase) : -1;
+  if (actPos < 0) return 0;
+
+  const start = acts[actPos]!.index;
+  const end = acts[actPos + 1]?.index ?? steps.length;
+
+  const clockMs = clockOnTimeline(steps, resume.clockIso);
+  if (clockMs === null) return start;
+
+  let index = start;
+  while (index < end && Date.parse(steps[index]!.event.at) <= clockMs) index += 1;
+  return index;
+}
+
 /**
  * Plays the embedded scenario against the same applyEvent used by the WS
  * client, so every screen behaves exactly as in the server-driven demo.
@@ -186,25 +260,38 @@ export function startAutoplay(options: AutoplayOptions = {}): void {
   const scenario = options.scenario ?? spRioScenario;
   const speed = options.speed && options.speed > 0 ? options.speed : 1;
   const steps = expandScenarioSteps(scenario);
+  const from = options.resumeFrom ? resumeStepIndex(steps, options.resumeFrom) : 0;
+  // Offsets are rebased on the last step already played, which keeps the gap
+  // to the next one instead of firing it the instant playback takes over.
+  const baseMs = from > 0 ? (steps[from - 1]?.afterMs ?? 0) : 0;
+  const pending = steps.slice(from);
 
   stopAutoplay();
-  running = true;
-  pendingSteps = steps.length;
+  running = pending.length > 0;
+  pendingSteps = pending.length;
   useJourneyStore.getState().setConnection('autoplay');
 
-  timers = steps.map((step) =>
-    setTimeout(() => {
-      useJourneyStore.getState().applyEvent(step.event);
-      pendingSteps -= 1;
-      if (pendingSteps <= 0) {
-        running = false;
-      }
-    }, step.afterMs / speed),
+  timers = pending.map((step) =>
+    setTimeout(
+      () => {
+        useJourneyStore.getState().applyEvent(step.event);
+        pendingSteps -= 1;
+        if (pendingSteps <= 0) {
+          running = false;
+        }
+      },
+      Math.max(0, step.afterMs - baseMs) / speed,
+    ),
   );
+}
 
-  if (pendingSteps === 0) {
-    running = false;
-  }
+/**
+ * Takes the demo over from wherever the store already is. This is the failover
+ * entry point: a server that dies in Act 4 must not rewind the journey to Act 1.
+ */
+export function resumeAutoplay(options: Omit<AutoplayOptions, 'resumeFrom'> = {}): void {
+  const { phase, clockIso } = useJourneyStore.getState();
+  startAutoplay({ ...options, resumeFrom: { phase, clockIso } });
 }
 
 export function stopAutoplay(): void {
