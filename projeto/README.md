@@ -76,6 +76,31 @@ Com o Metro no ar:
 O app descobre o host do servidor a partir do host do Metro (`expoConfig.hostUri`),
 então simulador e celular apontam para o mesmo MacBook sem configuração extra.
 
+#### Modo desenvolvimento x modo apresentação
+
+O comando acima serve para desenvolver: o JavaScript vem do Metro, então o app
+**depende do Metro rodando**. Se o app for aberto pelo ícone com o Metro desligado,
+aparece a tela vermelha `No script URL provided` — é o comportamento esperado de um
+build Debug, não um defeito.
+
+Para a apresentação, gere um build **Release**. Ele embute o JavaScript (~3,4 MB)
+dentro do `.app`, e o app passa a abrir pelo ícone e rodar sozinho, sem Metro e sem
+servidor:
+
+```bash
+cd projeto/app
+npx expo run:ios --configuration Release
+```
+
+Verificado em 31/08/2026 no iPhone 17 Pro (iOS 26.5): com o Metro desligado e a porta
+8081 livre, o app abre pelo ícone, entra em Modo demonstração e roda a jornada inteira.
+É o cenário mais seguro para o dia: não depende de rede nem de nenhum processo no
+MacBook.
+
+O primeiro `expo run:ios` gera a pasta nativa `ios/` (prebuild + CocoaPods) e demora
+vários minutos. A pasta `ios/` não é versionada: é artefato local e pode ser recriada
+com `rm -rf ios && npx expo prebuild --platform ios`.
+
 ## Rodando a demo com o painel
 
 1. Suba o servidor (`demo-server`) e abra `http://localhost:4000/panel/`.
