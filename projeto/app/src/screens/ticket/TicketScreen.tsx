@@ -1,10 +1,17 @@
 import { useState } from 'react';
+import { usePathname, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton, Screen, StatusPill } from '@/components/ui';
+import { navigateToPhaseRoute } from '@/navigation/phaseRoutes';
+// Same floating glyph the map uses, so "back" looks identical everywhere the
+// demo can strand the passenger. Reused rather than copied: it is a leaf
+// control with no map dependency.
+import { MapBackButton } from '@/screens/map/MapBackButton';
 import {
   selectBus,
   selectConnection,
+  selectPhase,
   selectPlatform,
   selectTicket,
   selectTrip,
@@ -18,6 +25,9 @@ import { TicketCard } from './TicketCard';
 import { TicketSkeleton } from './TicketSkeleton';
 
 export function TicketScreen() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const phase = useJourneyStore(selectPhase);
   const trip = useJourneyStore(selectTrip);
   const ticket = useJourneyStore(selectTicket);
   const platform = useJourneyStore(selectPlatform);
@@ -33,10 +43,24 @@ export function TicketScreen() {
   // means the ticket is being served from the device.
   const isOffline = connection !== 'panel';
 
+  /**
+   * The ticket is reached by a push, but the screen underneath it may have been
+   * replaced by a phase change while the QR code was open, so the way out aims
+   * at the act being presented instead of popping blindly.
+   */
+  const header = (
+    <>
+      <View style={styles.navRow}>
+        <MapBackButton onPress={() => navigateToPhaseRoute(router, phase, pathname)} />
+      </View>
+      <Text style={styles.title}>Bilhete</Text>
+    </>
+  );
+
   if (!trip || !ticket) {
     return (
       <Screen>
-        <Text style={styles.title}>Bilhete</Text>
+        {header}
         <View style={styles.section}>
           <TicketSkeleton />
         </View>
@@ -46,7 +70,7 @@ export function TicketScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>Bilhete</Text>
+      {header}
 
       <View style={styles.section}>
         <StatusPill
@@ -82,6 +106,10 @@ export function TicketScreen() {
 }
 
 const styles = StyleSheet.create({
+  navRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+  },
   title: {
     ...typography.display,
     color: colors.text.primary,

@@ -8,12 +8,17 @@ import { colors, spacing, typography } from '@/theme/tokens';
 const SCRIM_RGB = '23, 18, 31';
 
 /**
- * The fade is exactly as tall as the padding between the safe area and the
- * first line of content, so at rest nothing sits under it and only scrolled
- * content dissolves into the status bar strip.
+ * The fade covers the data-source badge that floats in the same top strip
+ * (~24pt tall: an 8pt row between spacing.xs paddings, plus its hairline).
+ * A shorter fade left the badge's bottom edge sitting on fully opaque text,
+ * which read as a section title chopped in half while it scrolled past.
+ *
+ * The first line of content starts one spacing.md below the safe area, so at
+ * rest only the leading above it falls inside the tail of the fade.
  */
-const SCRIM_FADE_HEIGHT = spacing.md;
-const SCRIM_BANDS = 8;
+const SCRIM_FADE_HEIGHT = spacing.lg;
+/** 2pt bands: the taller fade needs more steps to stay free of banding. */
+const SCRIM_BANDS = 12;
 
 /** Stepped gradient: RN has no native gradient and the app has no gradient dep. */
 const SCRIM_STOPS = Array.from({ length: SCRIM_BANDS }, (_, index) => ({

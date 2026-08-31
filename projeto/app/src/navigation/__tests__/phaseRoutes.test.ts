@@ -1,6 +1,12 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 
-import { MANUAL_NAV_GRACE_MS, PHASE_ROUTES, shouldAutoNavigate } from '../phaseRoutes';
+import type { BackRouter } from '../backNavigation';
+import {
+  MANUAL_NAV_GRACE_MS,
+  navigateToPhaseRoute,
+  PHASE_ROUTES,
+  shouldAutoNavigate,
+} from '../phaseRoutes';
 
 const NOW = 1_000_000;
 
@@ -56,8 +62,8 @@ describe('shouldAutoNavigate', () => {
   it('does not hijack a user who navigated manually inside the grace window', () => {
     expect(
       shouldAutoNavigate({
-        phase: 'ONBOARD',
-        previousPhase: 'TERMINAL',
+        phase: 'TERMINAL',
+        previousPhase: 'ONBOARD',
         pathname: '/ticket',
         lastManualNavigationAt: NOW - (MANUAL_NAV_GRACE_MS - 1),
         now: NOW,
@@ -68,13 +74,29 @@ describe('shouldAutoNavigate', () => {
   it('navigates again once the grace window has expired', () => {
     expect(
       shouldAutoNavigate({
-        phase: 'ONBOARD',
-        previousPhase: 'TERMINAL',
+        phase: 'TERMINAL',
+        previousPhase: 'ONBOARD',
         pathname: '/ticket',
         lastManualNavigationAt: NOW - MANUAL_NAV_GRACE_MS,
         now: NOW,
       }),
     ).toBe(true);
+  });
+
+  it('lets the script advance win over a touch inside the grace window', () => {
+    expect(
+      shouldAutoNavigate({
+        phase: 'ONBOARD',
+        previousPhase: 'TERMINAL',
+        pathname: '/ticket',
+        lastManualNavigationAt: NOW,
+        now: NOW,
+      }),
+    ).toBe(true);
+  });
+
+  it('keeps the grace window short enough not to miss the next act', () => {
+    expect(MANUAL_NAV_GRACE_MS).toBeLessThanOrEqual(5_000);
   });
 
   it('keeps the home route for both pre-terminal phases', () => {
@@ -87,5 +109,49 @@ describe('shouldAutoNavigate', () => {
         now: NOW,
       }),
     ).toBe(false);
+  });
+});
+
+describe('navigateToPhaseRoute', () => {
+  function fakeRouter(canGoBack: boolean) {
+    const back = jest.fn();
+    const replace = jest.fn();
+    const router = { canGoBack: () => canGoBack, back, replace } as unknown as BackRouter;
+    return { router, back, replace };
+  }
+
+  it('lands on the screen the current phase owns', () => {
+    const { router, back, replace } = fakeRouter(true);
+
+    navigateToPhaseRoute(router, 'ONBOARD', '/ticket');
+
+    expect(replace).toHaveBeenCalledWith('/map');
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it('does not replace the phase screen with itself', () => {
+    const { router, back, replace } = fakeRouter(true);
+
+    navigateToPhaseRoute(router, 'TERMINAL', '/terminal');
+
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('still reaches a screen when the phase screen is open on an empty stack', () => {
+    const { router, back, replace } = fakeRouter(false);
+
+    navigateToPhaseRoute(router, 'TERMINAL', '/terminal');
+
+    expect(back).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith('/');
+  });
+
+  it('leaves the terminal for the trip once the passenger is on board', () => {
+    const { router, replace } = fakeRouter(false);
+
+    navigateToPhaseRoute(router, 'ONBOARD', '/terminal');
+
+    expect(replace).toHaveBeenCalledWith('/map');
   });
 });
