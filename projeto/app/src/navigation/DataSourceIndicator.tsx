@@ -33,8 +33,10 @@ export function DataSourceIndicator({ booting = false }: DataSourceIndicatorProp
   return (
     <View pointerEvents="none" style={[styles.wrapper, { top: insets.top, right: spacing.md }]}>
       <View style={styles.badge}>
-        <View style={[styles.dot, { backgroundColor: source.color }]} />
-        <Text style={[styles.label, { color: source.color }]}>{source.label}</Text>
+        <View style={styles.row}>
+          <View style={[styles.dot, { backgroundColor: source.color }]} />
+          <Text style={[styles.label, { color: source.color }]}>{source.label}</Text>
+        </View>
       </View>
     </View>
   );
@@ -43,16 +45,23 @@ export function DataSourceIndicator({ booting = false }: DataSourceIndicatorProp
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    opacity: 0.55,
   },
+  // Opaque on purpose: the badge floats over scrolling content, and a
+  // translucent pill let text stay readable underneath it. Discretion comes
+  // from the muted row inside, not from fading the whole badge out.
   badge: {
+    backgroundColor: colors.bg.surface,
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline.onDark,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs + 2,
-    backgroundColor: colors.bg.surface,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    opacity: 0.62,
   },
   dot: {
     width: 6,

@@ -24,6 +24,15 @@ Monorepo com npm workspaces. Toda dependência é instalada a partir da raiz `pr
   Xcode › Settings › Components (ou `xcodebuild -downloadPlatform iOS`, que pede
   autorização de administrador). Sem runtime não existe simulador para rodar.
 - Para celular físico: app **Expo Go** e o celular na **mesma rede Wi-Fi** do MacBook.
+- **Caminho do projeto sem espaços.** O build nativo iOS (`npx expo run:ios`,
+  `pod install`) quebra quando o diretório do repositório contém espaço no nome.
+  Sintomas observados: o `pod install` falha com erro de encoding a menos que o
+  ambiente esteja em UTF-8 (`LANG`/`LC_ALL`, ex.: `LANG=en_US.UTF-8
+  LC_ALL=en_US.UTF-8 pod install`), e as build phases geradas pelo Xcode não
+  colocam o caminho entre aspas, então o script para no primeiro espaço
+  ("No such file or directory" com o caminho cortado pela metade).
+  Recomendação: clonar em um caminho sem espaços (ex.: `~/dev/challenger-2026`).
+  Isso não afeta `npx expo start` com Expo Go, que é o fluxo padrão da demo.
 
 ## Instalação
 
@@ -100,8 +109,12 @@ o roteiro embutido assume e a jornada acontece igual. O selo passa a exibir
 Isso também é o fallback de rede: se o Wi-Fi cair no meio da apresentação, o app
 migra sozinho para o roteiro embutido.
 
-> Limitação conhecida: depois que o auto-play assume, o app não volta para o modo
-> painel sozinho — é preciso reiniciar o app com o servidor no ar.
+**A volta é automática.** Depois da desistência o cliente continua tentando em
+segundo plano a cada 15 s, sem limite de tentativas. Quando o servidor sobe, a
+próxima tentativa conecta, o auto-play é desligado e o painel reassume a demo —
+sem reiniciar o app. Medido em ensaio: o selo voltou para **"Painel ao vivo"**
+em ~17 s após o servidor subir de novo (até 15 s de espera pelo próximo ciclo,
+mais o handshake).
 
 ## Bilhete offline
 
