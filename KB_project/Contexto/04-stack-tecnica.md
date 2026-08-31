@@ -79,3 +79,6 @@ o celular fisico nunca acha o MacBook.
 Decisao: mover para `~/Documents/Challenger2026`. Apos o move, refazer o prebuild
 (`rm -rf projeto/app/ios` + `npx expo prebuild --platform ios`) e confirmar que o app abre
 pelo icone sem o Metro.
+
+Bundle identifier iOS: `br.com.jornadaviva.app` (decidido em 31/08/2026). O `expo prebuild`
+gera `com.anonymous.<slug>` quando o campo esta ausente — nao deixar o placeholder no repo.

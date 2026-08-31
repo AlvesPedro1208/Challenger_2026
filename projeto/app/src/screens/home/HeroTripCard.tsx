@@ -6,7 +6,7 @@ import { Card, StatusPill } from '@/components/ui';
 import { cityName, placeComplement } from '@/lib/place';
 import { colors, spacing, typography } from '@/theme/tokens';
 
-import { countdownBetween, formatCountdown, formatDepartureLabel } from './format';
+import { formatDepartureLabel, resolveDepartureDisplay } from './format';
 
 type HeroTripCardProps = {
   trip: Trip;
@@ -16,8 +16,11 @@ type HeroTripCardProps = {
 };
 
 export function HeroTripCard({ trip, clockIso, platformCurrent, allClear }: HeroTripCardProps) {
-  const countdown = countdownBetween(clockIso, trip.departureIso);
+  const departure = resolveDepartureDisplay(clockIso, trip.departureIso);
   const platform = platformCurrent ?? trip.platform;
+  // Outside a live countdown the block already carries the date, so the
+  // standalone departure line above it would just repeat itself.
+  const showDepartureLine = departure.kind === 'countdown';
 
   // The headline carries cities only; the full names ("São Paulo (Terminal Tietê)")
   // wrap to three or four display-size lines and push the countdown below the fold.
@@ -37,8 +40,10 @@ export function HeroTripCard({ trip, clockIso, platformCurrent, allClear }: Hero
         </Text>
       ) : null}
 
-      <Text style={styles.departure}>{formatDepartureLabel(trip.departureIso)}</Text>
-      <Text style={styles.meta}>
+      {showDepartureLine ? (
+        <Text style={styles.departure}>{formatDepartureLabel(trip.departureIso)}</Text>
+      ) : null}
+      <Text style={[styles.meta, showDepartureLine ? null : styles.metaSpaced]}>
         {trip.company} · {trip.busClass} · Poltrona {trip.seat}
       </Text>
 
@@ -48,8 +53,14 @@ export function HeroTripCard({ trip, clockIso, platformCurrent, allClear }: Hero
       </View>
 
       <View style={styles.countdownBlock}>
-        <Text style={styles.countdownLabel}>Partida em</Text>
-        <Text style={styles.countdownValue}>{countdown ? formatCountdown(countdown) : '--'}</Text>
+        <Text style={styles.countdownLabel}>{departure.label}</Text>
+        <Text
+          style={
+            departure.kind === 'countdown' ? styles.countdownValue : styles.scheduledValue
+          }
+        >
+          {departure.value}
+        </Text>
       </View>
     </Card>
   );
@@ -81,6 +92,10 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginTop: spacing.xs,
   },
+  // Keeps the block breathing when the departure line above it is hidden.
+  metaSpaced: {
+    marginTop: spacing.sm,
+  },
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -101,6 +116,12 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: '800',
     letterSpacing: -0.5,
+    color: colors.text.primary,
+    marginTop: spacing.xs,
+  },
+  // The date reads as a sentence, not as a number: display size would wrap it.
+  scheduledValue: {
+    ...typography.title,
     color: colors.text.primary,
     marginTop: spacing.xs,
   },

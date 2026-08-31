@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { PrimaryButton, Screen } from '@/components/ui';
+import { Card, PrimaryButton, Screen } from '@/components/ui';
 import { navigateBack } from '@/navigation';
 import {
   selectDailySeries,
@@ -17,7 +17,6 @@ import { cityName } from './helpers';
 import { HeroRisk } from './HeroRisk';
 import { MetricCards } from './MetricCards';
 import { NextActionCard } from './NextActionCard';
-import { StatsSkeleton } from './StatsSkeleton';
 
 export function StatsScreen() {
   const router = useRouter();
@@ -25,10 +24,26 @@ export function StatsScreen() {
   const dailySeries = useJourneyStore(selectDailySeries);
   const trip = useJourneyStore(selectTrip);
 
+  // Without stats the screen must still say what is missing and offer a way
+  // out: in airplane mode the data never arrives, and a bare skeleton would
+  // pulse forever with no visible exit.
   if (!stats) {
     return (
       <Screen>
-        <StatsSkeleton />
+        <Text accessibilityRole="header" style={styles.title}>
+          Pontualidade do trecho
+        </Text>
+        <View style={styles.section}>
+          <Card>
+            <Text style={styles.emptyBody}>
+              O histórico de pontualidade deste trecho não está salvo neste aparelho. Ele
+              volta assim que o app reconectar.
+            </Text>
+          </Card>
+        </View>
+        <View style={styles.section}>
+          <PrimaryButton label="Voltar para a viagem" onPress={() => navigateBack(router)} />
+        </View>
       </Screen>
     );
   }
@@ -99,6 +114,11 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: spacing.md,
+  },
+  emptyBody: {
+    ...typography.body,
+    color: colors.text.primary,
+    lineHeight: 21,
   },
   footnote: {
     ...typography.caption,

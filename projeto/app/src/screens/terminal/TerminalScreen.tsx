@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { DemoPhase } from '@jornada/shared';
 
 import { AlertBanner, Card, PrimaryButton, Screen } from '@/components/ui';
+import { navigateBack } from '@/navigation';
 import {
   selectClockIso,
   selectIndoorMap,
@@ -56,14 +57,42 @@ export function TerminalScreen() {
   const showChangeBanner =
     pendingChange !== null && pendingChange !== dismissedChange && walk?.bannerMessage != null;
 
+  // Without the indoor map the screen must still name what is missing and keep
+  // both actions reachable: in airplane mode the map never arrives, and an
+  // early return with only a placeholder would strand the passenger here.
   if (!indoorMap) {
     return (
       <Screen>
         <Text style={styles.title}>Modo Terminal</Text>
+        <Text style={styles.subtitle}>Mapa do terminal indisponível</Text>
+
         <View style={styles.section}>
           <Card>
-            <Text style={styles.body}>Carregando o mapa do terminal…</Text>
+            <Text style={styles.body}>
+              O mapa indoor não está salvo neste aparelho. O embarque continua valendo:
+              siga a sinalização do terminal e mostre o bilhete no portão.
+            </Text>
+            {currentPlatform || boardingTime ? (
+              <Text style={styles.bodyMeta}>
+                {currentPlatform ? `Plataforma ${currentPlatform}` : 'Plataforma a definir'}
+                {boardingTime ? ` · embarque às ${boardingTime}` : ''}
+              </Text>
+            ) : null}
           </Card>
+        </View>
+
+        <View style={styles.section}>
+          <PrimaryButton label="Abrir bilhete" onPress={() => router.push('/ticket')} />
+        </View>
+
+        {/* Purple keeps the secondary exit visible without competing with the
+            pink primary action. */}
+        <View style={styles.section}>
+          <PrimaryButton
+            label="Voltar para a viagem"
+            variant="purple"
+            onPress={() => navigateBack(router)}
+          />
         </View>
       </Screen>
     );

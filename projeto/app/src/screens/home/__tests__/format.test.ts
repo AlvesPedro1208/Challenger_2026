@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  COUNTDOWN_MAX_MINUTES,
   countdownBetween,
   formatBRL,
   formatCountdown,
@@ -10,6 +11,7 @@ import {
   hoursBetween,
   isPastDeadline,
   parseIsoParts,
+  resolveDepartureDisplay,
 } from '../format';
 
 describe('parseIsoParts', () => {
@@ -87,6 +89,56 @@ describe('formatCountdown', () => {
 
   it('sinaliza partida imediata', () => {
     expect(formatCountdown({ totalMinutes: 0, hours: 0, minutes: 0 })).toBe('Agora');
+  });
+});
+
+describe('resolveDepartureDisplay', () => {
+  const departure = '2026-09-13T22:30:00-03:00';
+
+  it('mostra a contagem regressiva perto da partida', () => {
+    expect(resolveDepartureDisplay('2026-09-13T20:00:00-03:00', departure)).toEqual({
+      kind: 'countdown',
+      label: 'Partida em',
+      value: '2h 30min',
+    });
+  });
+
+  it('mantem a contagem no limite de 24h', () => {
+    const clock = new Date(Date.parse(departure) - COUNTDOWN_MAX_MINUTES * 60000).toISOString();
+    expect(resolveDepartureDisplay(clock, departure).kind).toBe('countdown');
+  });
+
+  it('troca por data programada quando a faixa e implausivel', () => {
+    // Cenario do ensaio: app aberto com o relogio real antes de iniciar o cenario.
+    expect(resolveDepartureDisplay('2026-08-31T11:13:00-03:00', departure)).toEqual({
+      kind: 'scheduled',
+      label: 'Partida programada para',
+      value: 'Dom, 13 de set · 22:30',
+    });
+  });
+
+  it('mostra a data programada sem relogio simulado', () => {
+    expect(resolveDepartureDisplay(null, departure)).toEqual({
+      kind: 'scheduled',
+      label: 'Partida programada para',
+      value: 'Dom, 13 de set · 22:30',
+    });
+  });
+
+  it('mantem a contagem quando a partida ja passou', () => {
+    expect(resolveDepartureDisplay('2026-09-13T23:00:00-03:00', departure)).toEqual({
+      kind: 'countdown',
+      label: 'Partida em',
+      value: 'Agora',
+    });
+  });
+
+  it('degrada para estado neutro com partida invalida', () => {
+    expect(resolveDepartureDisplay('2026-09-13T20:00:00-03:00', 'quinta que vem')).toEqual({
+      kind: 'waiting',
+      label: 'Partida',
+      value: 'Aguardando início da viagem',
+    });
   });
 });
 

@@ -115,6 +115,40 @@ export function formatCountdown(parts: CountdownParts): string {
 }
 
 /**
+ * A countdown is only meaningful near the departure. With the scenario stopped
+ * the app runs on the real clock, so the gap to the scripted departure can be
+ * hundreds of hours ("Partida em 323h 17min"). Past this threshold the hero
+ * falls back to the scheduled date.
+ */
+export const COUNTDOWN_MAX_MINUTES = 24 * 60;
+
+export interface DepartureDisplay {
+  /** `countdown` = live gap · `scheduled` = date only · `waiting` = no usable date. */
+  kind: 'countdown' | 'scheduled' | 'waiting';
+  label: string;
+  value: string;
+}
+
+/** What the hero shows in the departure block, given the simulated clock. */
+export function resolveDepartureDisplay(
+  clockIso: string | null,
+  departureIso: string,
+): DepartureDisplay {
+  const countdown = countdownBetween(clockIso, departureIso);
+  if (countdown && countdown.totalMinutes <= COUNTDOWN_MAX_MINUTES) {
+    return { kind: 'countdown', label: 'Partida em', value: formatCountdown(countdown) };
+  }
+  if (parseIsoParts(departureIso)) {
+    return {
+      kind: 'scheduled',
+      label: 'Partida programada para',
+      value: formatDepartureLabel(departureIso),
+    };
+  }
+  return { kind: 'waiting', label: 'Partida', value: 'Aguardando início da viagem' };
+}
+
+/**
  * Whole hours from `fromIso` to `toIso`. Returns null for invalid timestamps or
  * for gaps shorter than one hour, so callers can fall back to another wording.
  */

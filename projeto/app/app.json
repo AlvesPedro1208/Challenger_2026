@@ -10,7 +10,8 @@
     "backgroundColor": "#17121F",
     "ios": {
       "icon": "./assets/expo.icon",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.jornadaviva.app"
     },
     "android": {
       "adaptiveIcon": {
