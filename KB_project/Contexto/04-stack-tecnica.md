@@ -65,3 +65,17 @@ então é promovida a `error`. Formatação não é trabalho do ESLint e está f
 Candidato mais próximo de promoção: `react-hooks/refs` — bastam 3 edições mecânicas
 (`useRef(new Animated.Value(x)).current` → `const [x] = useState(() => new Animated.Value(x))`)
 para zerar 14 dos 29 warnings.
+
+## Caminho do repositorio (decidido em 31/08/2026)
+
+O repositorio NAO pode ficar em caminho com espaco. Com `Documents/Challenger 2026`, o build
+nativo iOS quebra em tres pontos, o pior deles em silencio: o script
+`node_modules/expo-constants/scripts/get-app-config-ios.sh` faz `basename $PROJECT_DIR` sem
+aspas, o guard falha e o script sai com codigo 0 sem gerar o app.config embutido. Sintomas:
+o app so abre pelo deep link do Metro (pelo icone da tela vermelha de erro) e
+`Constants.expoConfig.hostUri` fica indefinido, caindo no fallback `localhost` — ou seja,
+o celular fisico nunca acha o MacBook.
+
+Decisao: mover para `~/Documents/Challenger2026`. Apos o move, refazer o prebuild
+(`rm -rf projeto/app/ios` + `npx expo prebuild --platform ios`) e confirmar que o app abre
+pelo icone sem o Metro.
