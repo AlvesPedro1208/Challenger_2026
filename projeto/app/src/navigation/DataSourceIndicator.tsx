@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +17,12 @@ const LOADING: SourceStyle = { label: 'Carregando', color: colors.text.secondary
 
 /** Long press, so a stray tap during the presentation never opens it. */
 const SETTINGS_LONG_PRESS_MS = 800;
+
+/** The screen behind the badge. */
+const SETTINGS_ROUTE = '/server-settings';
+
+/** The badge row is ~20pt tall; the slop brings its target to the 44pt minimum. */
+const TOUCH_SLOP = 12;
 
 type DataSourceIndicatorProps = {
   booting?: boolean;
@@ -39,7 +45,17 @@ export function DataSourceIndicator({ booting = false }: DataSourceIndicatorProp
   const connection = useJourneyStore(selectConnection);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const pathname = usePathname();
   const source = booting ? LOADING : SOURCES[connection];
+
+  // The badge floats above every screen, the settings screen included, so a
+  // long press there used to stack a second copy of it — each one needing its
+  // own way back. Opening it only from somewhere else keeps the gesture
+  // idempotent.
+  const openSettings = (): void => {
+    if (pathname === SETTINGS_ROUTE) return;
+    router.push(SETTINGS_ROUTE);
+  };
 
   return (
     <View pointerEvents="box-none" style={[styles.wrapper, { top: insets.top, right: spacing.md }]}>
@@ -47,7 +63,8 @@ export function DataSourceIndicator({ booting = false }: DataSourceIndicatorProp
         accessibilityRole="button"
         accessibilityLabel={`Fonte dos dados: ${source.label}. Toque longo para configurar o servidor.`}
         delayLongPress={SETTINGS_LONG_PRESS_MS}
-        onLongPress={() => router.push('/server-settings')}
+        hitSlop={TOUCH_SLOP}
+        onLongPress={openSettings}
         style={({ pressed }) => [styles.badge, pressed && styles.pressed]}
       >
         <View style={styles.row}>

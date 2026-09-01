@@ -38,6 +38,10 @@ export function Screen({ children, scroll = true, title }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const padding = {
     paddingTop: insets.top + spacing.md,
+    // The tab bar is laid out below the screen, not floating over it, so it
+    // hides nothing by itself — but it does own the bottom safe area now. The
+    // inset stays in this padding on purpose: it is what keeps the last row of
+    // content clear of the bar instead of ending flush against its edge.
     paddingBottom: insets.bottom + spacing.lg,
     paddingHorizontal: spacing.md,
   };
@@ -59,7 +63,15 @@ export function Screen({ children, scroll = true, title }: ScreenProps) {
 
   return (
     <View style={styles.root}>
-      <ScrollView style={styles.scroll} contentContainerStyle={padding}>
+      {/* With the default ('never'), the first tap while a keyboard is open is
+          swallowed to dismiss it, and the button under the finger does nothing
+          — which reads as a frozen app. 'handled' dismisses the keyboard and
+          delivers the tap in one go. */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={padding}
+        keyboardShouldPersistTaps="handled"
+      >
         {content}
       </ScrollView>
       <View pointerEvents="none" style={styles.scrim}>

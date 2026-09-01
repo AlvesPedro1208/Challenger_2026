@@ -216,10 +216,9 @@ export function MapScreen() {
         ) : null}
       </View>
 
-      <View
-        style={[styles.footer, { bottom: insets.bottom + spacing.md }]}
-        pointerEvents="box-none"
-      >
+      {/* The tab bar sits below the map and already covers the bottom safe
+          area, so the cards only need to clear its top edge. */}
+      <View style={styles.footer} pointerEvents="box-none">
         {tracking ? (
           <StatusCards bus={bus} highlight={highlight} nextTarget={nextTarget} />
         ) : (
@@ -291,6 +290,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.md,
     right: spacing.md,
+    bottom: spacing.md,
     gap: spacing.sm,
   },
 });
