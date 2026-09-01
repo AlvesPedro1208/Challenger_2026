@@ -158,3 +158,17 @@ identico ao card (1.1:1) e sem estado de foco; CurrentBaseCard nao distingue a q
 da fonte (metro em release = app apontado para lugar nenhum, mas aparece igual a override).
 BAIXO: sem accessibilityLiveRegion no feedback; role=button sem onPress no selo;
 prop title de Screen e codigo morto; "Limpar" sem confirmacao; sem returnKeyType.
+
+## Auditoria de saidas (reportado pelo Pedro em 01/09/2026)
+
+Sintoma relatado: as vezes abre-se uma tela e nao ha como voltar, porque a tela aberta
+nao tem botao de retorno. Ja corrigimos Terminal (todos os ramos) e Bilhete, mas o
+relato indica que sobraram casos.
+
+Fazer auditoria SISTEMATICA: cada tela x cada estado (carregando, vazio, erro, e cada
+variante de fase da jornada) precisa ter saida visivel. Nao basta corrigir os casos
+conhecidos — precisa de varredura completa e, de preferencia, de um teste que trave a
+regra para novas telas nao nascerem sem saida.
+
+Agravante ja conhecido: a navegacao por fase usa router.replace, entao a pilha fica
+vazia e o swipe-back do iOS nao funciona — a saida TEM que ser visivel na tela.
