@@ -7,6 +7,7 @@ import type { Trip } from '@jornada/shared';
 import { AlertBanner, Card, PrimaryButton, Screen, StatusPill } from '@/components/ui';
 import { cityName } from '@/lib/place';
 import {
+  selectArrived,
   selectBus,
   selectClockIso,
   selectPhase,
@@ -20,6 +21,7 @@ import {
 } from '@/state/store';
 import { colors, radii, spacing, typography } from '@/theme/tokens';
 
+import { resolveArrivalCta, type ArrivalCtaVariant } from './arrivalCta';
 import { countdownBetween, formatCountdown, formatTimeHM, isPastDeadline } from './format';
 import { HeroTripCard } from './HeroTripCard';
 import { RebookModal } from './RebookModal';
@@ -37,6 +39,7 @@ export function HomeScreen() {
   const risk = useJourneyStore(selectRisk);
   const trafficAlert = useJourneyStore(selectTrafficAlert);
   const bus = useJourneyStore(selectBus);
+  const arrived = useJourneyStore(selectArrived);
 
   const [rebookVisible, setRebookVisible] = useState(false);
   const [refundVisible, setRefundVisible] = useState(false);
@@ -68,6 +71,9 @@ export function HomeScreen() {
   const allClear =
     !trafficAlert && !risk && !platform.pendingChange && bus.delayMin <= 0 && !onboard;
   const refundExpired = risk ? isPastDeadline(clockIso, risk.refundDeadlineIso) : false;
+  const arrivalCta = resolveArrivalCta({ arrived, phase });
+  // Exactly one pink per screen: whichever button the arrival CTA is not.
+  const mapVariant: ArrivalCtaVariant = arrivalCta.variant === 'pink' ? 'purple' : 'pink';
 
   return (
     <Screen>
@@ -90,6 +96,7 @@ export function HomeScreen() {
             bus={bus}
             arrived={phase === 'ARRIVED'}
             platform={platform.current ?? trip.platform}
+            mapVariant={mapVariant}
             onOpenMap={() => router.push('/map')}
           />
         ) : (
@@ -101,6 +108,16 @@ export function HomeScreen() {
           />
         )}
       </View>
+
+      {arrivalCta.visible ? (
+        <View style={styles.section}>
+          <ArrivalCard
+            city={cityName(trip.destination)}
+            variant={arrivalCta.variant}
+            onOpenArrival={() => router.push('/arrival')}
+          />
+        </View>
+      ) : null}
 
       {phase === 'EN_ROUTE_TERMINAL' ? (
         <View style={styles.section}>
@@ -198,6 +215,34 @@ function GhostButton({ label, onPress }: GhostButtonProps) {
   );
 }
 
+type ArrivalCardProps = {
+  city: string;
+  variant: ArrivalCtaVariant;
+  onOpenArrival: () => void;
+};
+
+/**
+ * The only door to the arrival that survives a tap on the tab bar: without it,
+ * leaving the last act means coming back through the ticket's arrow or a new
+ * phase fired from the panel.
+ */
+function ArrivalCard({ city, variant, onOpenArrival }: ArrivalCardProps) {
+  return (
+    <Card style={styles.blockCard}>
+      <Text style={styles.sectionLabel}>Você chegou</Text>
+      <Text style={styles.blockTitle}>{city}</Text>
+      <Text style={styles.blockBody}>
+        O que está aberto perto do desembarque e o seu histórico nesta rota.
+      </Text>
+      <PrimaryButton
+        label="Ver recomendações do destino"
+        variant={variant}
+        onPress={onOpenArrival}
+      />
+    </Card>
+  );
+}
+
 type EnRouteCardProps = {
   trip: Trip;
   clockIso: string | null;
@@ -232,6 +277,8 @@ type OnboardSummaryCardProps = {
   bus: BusState;
   arrived: boolean;
   platform: string;
+  /** Demoted to purple once the arrival CTA below owns the screen's pink. */
+  mapVariant: ArrivalCtaVariant;
   onOpenMap: () => void;
 };
 
@@ -240,6 +287,7 @@ function OnboardSummaryCard({
   bus,
   arrived,
   platform,
+  mapVariant,
   onOpenMap,
 }: OnboardSummaryCardProps) {
   const delayed = bus.delayMin > 0;
@@ -272,7 +320,7 @@ function OnboardSummaryCard({
         />
       </View>
 
-      <PrimaryButton label="Acompanhar no mapa" onPress={onOpenMap} />
+      <PrimaryButton label="Acompanhar no mapa" variant={mapVariant} onPress={onOpenMap} />
     </Card>
   );
 }
