@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ServerSettingsScreen } from '../ServerSettingsScreen';
@@ -36,16 +36,28 @@ function textOf(tree: ReactTestRenderer): string {
   return out.join(' ');
 }
 
+async function render(): Promise<ReactTestRenderer> {
+  let tree!: ReactTestRenderer;
+  await act(async () => {
+    tree = create(
+      <SafeAreaProvider initialMetrics={SAFE_AREA_METRICS}>
+        <ServerSettingsScreen />
+      </SafeAreaProvider>,
+    );
+  });
+  return tree;
+}
+
+function byLabel(tree: ReactTestRenderer, label: string): ReactTestInstance {
+  return tree.root.find(
+    (node) =>
+      typeof node.type !== 'string' && node.props.accessibilityLabel === label && !!node.props.style,
+  );
+}
+
 describe('ServerSettingsScreen', () => {
   it('renders the base in use and the way out', async () => {
-    let tree!: ReactTestRenderer;
-    await act(async () => {
-      tree = create(
-        <SafeAreaProvider initialMetrics={SAFE_AREA_METRICS}>
-          <ServerSettingsScreen />
-        </SafeAreaProvider>,
-      );
-    });
+    const tree = await render();
 
     const text = textOf(tree);
     expect(text).toContain('Servidor da demo');
@@ -55,6 +67,82 @@ describe('ServerSettingsScreen', () => {
     expect(text).toContain('ws://localhost:4000/ws');
     expect(text).toContain('Testar conexão');
     expect(text).toContain('Voltar para a viagem');
+
+    act(() => tree.unmount());
+  });
+
+  it('names the base source as a status pill instead of a plain line', async () => {
+    const tree = await render();
+
+    // Metro under Jest: the source the operator must not present with.
+    expect(textOf(tree)).toContain('Rede local do Metro');
+
+    act(() => tree.unmount());
+  });
+
+  it('states the test outcome in words, not only in colour', async () => {
+    const tree = await render();
+    expect(textOf(tree)).toContain('Sem teste ainda');
+
+    const input = byLabel(tree, 'URL do servidor');
+    await act(async () => {
+      input.props.onChangeText('not a url');
+    });
+    await act(async () => {
+      byLabel(tree, 'Testar conexão').props.onPress();
+    });
+
+    expect(textOf(tree)).toContain('URL inválida');
+
+    act(() => tree.unmount());
+  });
+
+  it('asks for a second tap before discarding the saved URL', async () => {
+    const tree = await render();
+
+    await act(async () => {
+      byLabel(tree, 'Limpar e voltar ao padrão').props.onPress();
+    });
+    expect(textOf(tree)).toContain('Tocar de novo para confirmar');
+    expect(textOf(tree)).not.toContain('URL removida');
+
+    await act(async () => {
+      byLabel(tree, 'Tocar de novo para confirmar').props.onPress();
+    });
+    expect(textOf(tree)).toContain('URL removida');
+
+    act(() => tree.unmount());
+  });
+
+  it('disarms the confirmation when the operator types instead', async () => {
+    const tree = await render();
+
+    await act(async () => {
+      byLabel(tree, 'Limpar e voltar ao padrão').props.onPress();
+    });
+    await act(async () => {
+      byLabel(tree, 'URL do servidor').props.onChangeText('https://algo.trycloudflare.com');
+    });
+
+    expect(textOf(tree)).not.toContain('Tocar de novo para confirmar');
+
+    act(() => tree.unmount());
+  });
+
+  it('offers an inline way to empty the field once it has text', async () => {
+    const tree = await render();
+
+    expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Apagar o texto do campo'))
+      .toHaveLength(0);
+
+    await act(async () => {
+      byLabel(tree, 'URL do servidor').props.onChangeText('https://algo.trycloudflare.com');
+    });
+    await act(async () => {
+      byLabel(tree, 'Apagar o texto do campo').props.onPress();
+    });
+
+    expect(byLabel(tree, 'URL do servidor').props.value).toBe('');
 
     act(() => tree.unmount());
   });

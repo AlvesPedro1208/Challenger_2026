@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, PrimaryButton, Screen } from '@/components/ui';
 import { navigateToPhaseRoute } from '@/navigation/phaseRoutes';
@@ -16,27 +16,11 @@ import {
   type ResolvedServerBase,
 } from '@/services/serverConfig';
 import { selectPhase, useJourneyStore } from '@/state/store';
-import { colors, radii, spacing, typography } from '@/theme/tokens';
+import { colors, spacing, typography } from '@/theme/tokens';
 
 import { CurrentBaseCard } from './CurrentBaseCard';
-
-type FeedbackTone = 'ok' | 'error' | 'info';
-
-interface Feedback {
-  tone: FeedbackTone;
-  text: string;
-}
-
-const FEEDBACK_COLORS: Record<FeedbackTone, string> = {
-  ok: colors.onTone.success,
-  error: colors.onTone.primary,
-  info: colors.text.secondary,
-};
-
-const INVALID_URL: Feedback = {
-  tone: 'error',
-  text: 'URL inválida. Cole o endereço completo, começando com https:// ou http://.',
-};
+import { INVALID_URL, ServerStatus, type Feedback } from './ServerStatus';
+import { ServerUrlField } from './ServerUrlField';
 
 const RESTART_HINT = 'Feche e abra o app para que a conexão passe a usar este endereço.';
 
@@ -57,6 +41,9 @@ export function ServerSettingsScreen() {
   const [base, setBase] = useState<ResolvedServerBase>(() => currentServerBase());
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [testing, setTesting] = useState(false);
+  // "Limpar e voltar ao padrão" throws away a URL that was just pasted, so it
+  // takes two taps: the first one arms it, any other action disarms it.
+  const [clearArmed, setClearArmed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,26 +58,42 @@ export function ServerSettingsScreen() {
     };
   }, []);
 
+  const handleChangeText = useCallback((next: string): void => {
+    setInput(next);
+    setClearArmed(false);
+  }, []);
+
   const handleSave = useCallback(async (): Promise<void> => {
+    setClearArmed(false);
     const saved = await saveServerOverride(input);
     if (!saved) {
       setFeedback(INVALID_URL);
       return;
     }
     setBase(currentServerBase());
-    setFeedback({ tone: 'ok', text: `URL salva. ${RESTART_HINT}` });
+    setFeedback({ tone: 'success', label: 'URL salva', text: RESTART_HINT });
   }, [input]);
 
-  const handleClear = useCallback(async (): Promise<void> => {
+  const handleClearPress = useCallback(async (): Promise<void> => {
+    if (!clearArmed) {
+      setClearArmed(true);
+      return;
+    }
+    setClearArmed(false);
     await clearServerOverride();
     setInput('');
     setBase(currentServerBase());
-    setFeedback({ tone: 'info', text: `URL removida. ${RESTART_HINT}` });
-  }, []);
+    setFeedback({
+      tone: 'purple',
+      label: 'URL removida',
+      text: `Cole a URL do túnel de novo para voltar a usá-la. ${RESTART_HINT}`,
+    });
+  }, [clearArmed]);
 
   const handleTest = useCallback(async (): Promise<void> => {
     // Tests what is typed, so a URL can be checked before being saved; with an
     // empty field it tests whatever the app is using right now.
+    setClearArmed(false);
     const typed = input.trim();
     const target = typed ? deriveServerBase(typed) : currentServerBase();
     if (!target) {
@@ -98,11 +101,21 @@ export function ServerSettingsScreen() {
       return;
     }
     setTesting(true);
-    setFeedback({ tone: 'info', text: `Testando ${target.httpBaseUrl}/api/health...` });
+    setFeedback({
+      tone: 'purple',
+      label: 'Testando',
+      text: `Chamando ${target.httpBaseUrl}/api/health...`,
+    });
     const result = await checkServerHealth(target.httpBaseUrl);
     setTesting(false);
-    setFeedback({ tone: result.ok ? 'ok' : 'error', text: result.message });
+    setFeedback(
+      result.ok
+        ? { tone: 'success', label: 'Conectado', text: result.message }
+        : { tone: 'primary', label: 'Sem conexão', text: result.message },
+    );
   }, [input]);
+
+  const clearLabel = clearArmed ? 'Tocar de novo para confirmar' : 'Limpar e voltar ao padrão';
 
   return (
     <Screen>
@@ -123,17 +136,10 @@ export function ServerSettingsScreen() {
       <View style={styles.section}>
         <Card>
           <Text style={styles.fieldLabel}>URL do servidor</Text>
-          <TextInput
-            accessibilityLabel="URL do servidor"
-            style={styles.input}
+          <ServerUrlField
             value={input}
-            onChangeText={setInput}
-            placeholder="https://algo.trycloudflare.com"
-            placeholderTextColor={colors.text.secondary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            keyboardType="url"
+            onChangeText={handleChangeText}
+            onSubmit={() => void handleSave()}
           />
           <Text style={styles.hint}>
             O endereço WebSocket é derivado automaticamente: https vira wss, http vira ws.
@@ -153,25 +159,22 @@ export function ServerSettingsScreen() {
         />
       </View>
 
-      {feedback ? (
-        <Text style={[styles.feedback, { color: FEEDBACK_COLORS[feedback.tone] }]}>
-          {feedback.text}
-        </Text>
-      ) : null}
+      <ServerStatus feedback={feedback} />
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Limpar e voltar ao padrão"
+        accessibilityLabel={clearLabel}
+        accessibilityHint="Apaga a URL salva e volta ao endereço padrão do app"
         style={styles.clearRow}
-        onPress={() => void handleClear()}
+        onPress={() => void handleClearPress()}
       >
-        <Text style={styles.clearLabel}>Limpar e voltar ao padrão</Text>
+        <Text style={[styles.clearLabel, clearArmed && styles.clearLabelArmed]}>{clearLabel}</Text>
       </Pressable>
 
       <View style={styles.section}>
         <PrimaryButton
           label="Voltar para a viagem"
-          variant="green"
+          variant="purple"
           onPress={() => navigateToPhaseRoute(router, phase, pathname)}
         />
       </View>
@@ -204,27 +207,10 @@ const styles = StyleSheet.create({
     ...typography.sectionLabel,
     color: colors.text.secondary,
   },
-  input: {
-    ...typography.body,
-    color: colors.text.primary,
-    backgroundColor: colors.bg.primary,
-    borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline.onDark,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.sm + 4,
-    marginTop: spacing.sm,
-    minHeight: 44,
-  },
   hint: {
     ...typography.caption,
     color: colors.text.secondary,
     marginTop: spacing.sm,
-    lineHeight: 18,
-  },
-  feedback: {
-    ...typography.caption,
-    marginTop: spacing.md,
     lineHeight: 18,
   },
   clearRow: {
@@ -232,11 +218,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
-    marginTop: spacing.sm,
   },
   clearLabel: {
     ...typography.caption,
     color: colors.text.secondary,
     textDecorationLine: 'underline',
+  },
+  clearLabelArmed: {
+    color: colors.onTone.warning,
   },
 });
