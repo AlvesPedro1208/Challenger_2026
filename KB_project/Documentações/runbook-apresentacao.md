@@ -86,6 +86,10 @@ o item "reinstalar na véspera" é obrigatório em todo evento.
 
 - [ ] Subir servidor + túnel e conectar o iPhone pela URL do túnel (procedimento
       completo na seção 3). Confirmar que o selo do app vira **"Painel ao vivo"**.
+- [ ] Ensaiar o gesto da tela de configuração até sair sem hesitar: **toque longo de
+      ~0,8 s no selo** do canto superior direito (toque curto não abre nada), colar URL,
+      **Salvar URL**, **Testar conexão**, **fechar e reabrir o app**. O passo de reabrir
+      é obrigatório — a URL salva só entra em uso no próximo launch.
 - [ ] Testar o espelhamento do iPhone no projetor/telão que será usado. Se for
       QuickTime via cabo, testar com o cabo real. Se for AirPlay, lembrar que ele
       depende de rede — preferir cabo.
@@ -219,19 +223,85 @@ Ajustes antes de começar:
 Deixar a janela do painel em uma tela que a banca **não** vê. Se houver só um monitor,
 usar espaços/desktops separados e nunca espelhar o MacBook — espelhe o **celular**.
 
-### Passo 4 — apontar o app para o túnel (2 min)
+### Passo 4 — apontar o app para o túnel (3 min)
 
-No iPhone, abrir o app pelo ícone, entrar na **tela de configuração** e colar a URL do
-túnel (`https://<...>.trycloudflare.com`). Salvar.
+Esta é a única etapa que exige mexer no celular. Leia os dois avisos antes de tocar na tela.
 
-Esperado: o selo no canto superior do app muda de **"Modo demonstração"** (roxo) para
-**"Painel ao vivo"** (verde). Isso pode levar até ~15 s, porque o app só tenta reconectar
-a cada 15 s depois de ter desistido no boot. **Não reinicie o app** achando que travou —
-espere os 15 s.
+**Aviso 1 — como se abre a tela.** A configuração de servidor não tem botão visível. Ela
+abre com **toque longo de ~0,8 s no selo de fonte de dados** — a pílula no canto superior
+direito ("Modo demonstração" / "Painel ao vivo" / "Offline"), presente em qualquer tela do
+app. **Toque curto não faz nada**: o gesto é longo de propósito, para que um toque acidental
+durante a apresentação nunca abra a tela de configuração na frente da banca.
+
+**Aviso 2 — a URL salva só vale no próximo launch.** O app fixa o endereço do servidor
+uma vez, no boot. Salvar uma URL nova **não** reconecta a sessão que já está rodando: o
+selo continua como estava e nada acontece. Isso é comportamento esperado, não defeito.
+Quem espera efeito imediato conclui que quebrou e reinicia tudo no pior momento.
+
+**Procedimento (nesta ordem, sem pular):**
+
+1. No iPhone, abrir o app pelo ícone.
+2. **Toque longo** (~0,8 s) no selo do canto superior direito. Abre "Servidor da demo".
+3. Colar a URL do túnel no campo **URL do servidor**, com esquema:
+   `https://<palavras-aleatorias>.trycloudflare.com`.
+4. Tocar **Salvar URL**. Esperado: mensagem verde "URL salva. Feche e abra o app para que
+   a conexão passe a usar este endereço." Se aparecer "URL inválida", ver a tabela de
+   formato abaixo.
+5. Tocar **Testar conexão**. Ele bate em `<URL>/api/health` com timeout de 4 s e diz o que
+   aconteceu: "Servidor no ar. Resposta: ok." é o que você quer ver. **Este teste não
+   conecta a demo** — ele só prova que o endereço responde.
+6. **Fechar o app por completo e abrir de novo pelo ícone.** Só agora a URL entra em uso.
+7. Confirmar: o selo tem que virar **"Painel ao vivo"** (verde) durante o boot. Se o túnel
+   já está no ar, isso leva poucos segundos. Os ~15 s de espera valem para o caso oposto —
+   servidor que sobe **depois** do app —, não para este.
 
 Confirmação cruzada, no painel: o contador de clientes/log deve registrar a conexão do
 app. Dispare um evento inofensivo para testar o canal — por exemplo o botão de fase
 **Em casa** — e veja o app reagir.
+
+#### A tela "Servidor da demo" em detalhe
+
+| Elemento | O que faz |
+|---|---|
+| Card **Em uso agora** | Diz de onde veio o endereço em uso ("URL salva neste aparelho", "Padrão do build (app.json)" ou "Rede local do Metro (desenvolvimento)") e mostra as bases HTTP e WebSocket resolvidas |
+| Campo **URL do servidor** | Onde se cola a URL do túnel. Já vem preenchido com a URL salva, se houver |
+| **Salvar URL** | Grava a URL no aparelho. Vale a partir do **próximo launch** |
+| **Testar conexão** | Testa `GET <base>/api/health` (timeout 4 s). Testa **o que está digitado**; com o campo vazio, testa o endereço em uso agora. Não altera nada |
+| **Limpar e voltar ao padrão** | Apaga a URL salva. Também só vale no próximo launch |
+| **Voltar para a viagem** (e a seta no topo) | Volta para a tela do ato atual, sem mexer na configuração |
+
+#### Formato aceito da URL
+
+| Entrada | Resultado |
+|---|---|
+| `https://algo.trycloudflare.com` | Aceita. Deriva `https://algo.trycloudflare.com` + `wss://algo.trycloudflare.com/ws` |
+| `http://192.168.0.14:4000` | Aceita. Deriva HTTP + `ws://192.168.0.14:4000/ws` (LAN, sem túnel) |
+| `https://algo.trycloudflare.com/` ou `.../api/health` | Aceita — barra final, caminho e query são descartados; cada chamada do app põe o próprio caminho |
+| `algo.trycloudflare.com` (sem esquema) | **Rejeitada.** "URL inválida. Cole o endereço completo, começando com https:// ou http://" |
+
+O endereço de WebSocket é derivado sozinho a partir do mesmo host: **https vira wss**,
+http vira ws. Não existe campo separado para o WebSocket, e não se deve tentar colar um.
+Em iPhone físico, só o par `https`/`wss` passa pelo App Transport Security — por isso a
+URL do túnel, e não o IP da LAN, é o que se cola no dia.
+
+#### De onde o app tira o endereço (precedência)
+
+O app resolve o servidor nesta ordem, e para no primeiro que existir e for válido:
+
+| Ordem | Fonte | Situação hoje |
+|---|---|---|
+| 1 | **URL salva pelo operador** na tela de configuração | É o caminho real da apresentação |
+| 2 | `expoConfig.extra.demoServerUrl`, definido no `app.json` em tempo de build | **Ausente hoje** — o `app.json` do projeto não define `extra.demoServerUrl` |
+| 3 | Host do Metro (`hostUri` do expo-constants) | Só existe **em desenvolvimento**. Em Release não há Metro, e essa fonte cai em `localhost` |
+
+Uma fonte com URL impossível de interpretar é ignorada, e a próxima da lista assume — uma
+URL salva com erro de digitação não deixa o app sem nada para tentar.
+
+**O que isso significa em build Release:** sem URL salva, o app cai na fonte 3 da tabela, tenta
+`localhost:4000` no próprio iPhone, não acha ninguém e entra em **Modo demonstração**
+(auto-play). Não é falha do túnel nem do servidor: em Release **o painel ao vivo só
+funciona se alguém colar a URL nesta tela**. A URL não está fixada no build, e não há
+como fixá-la sem gerar um build novo.
 
 ### Passo 5 — espelhamento e posição (3 min)
 
@@ -320,7 +390,8 @@ falha do próprio app. O auto-play cobre tudo o mais.
 | Falha | O que você vê | Ação | Custo |
 |---|---|---|---|
 | **Wi-Fi cai** | Selo do app volta para "Modo demonstração"; painel para de responder | **Não faça nada.** O app migra sozinho para o roteiro embutido e continua do ponto certo. Narre normalmente. Se o Wi-Fi voltar, o app reconecta sozinho em ~15 s | **0 s** |
-| **Túnel cai** (`cloudflared` morre, URL expira) | Painel continua vivo em `localhost`, mas o celular volta para "Modo demonstração" | Se a demo está boa em auto-play, **deixe assim até o fim**. Se precisar do painel de volta: reexecutar `cloudflared tunnel --url http://localhost:4000`, pegar a **URL nova**, colar na tela de configuração do app | ~60–90 s, e exige mexer no celular na frente da banca |
+| **Túnel cai** (`cloudflared` morre, URL expira) | Painel continua vivo em `localhost`, mas o celular volta para "Modo demonstração" | Se a demo está boa em auto-play, **deixe assim até o fim** — é a escolha certa em quase todos os casos. Recuperar o painel exige URL nova e reabrir o app (linha abaixo) | 0 s se deixar em auto-play |
+| **Túnel voltou com URL nova** (reexecutou `cloudflared` e o endereço mudou) | O terminal mostra uma URL `trycloudflare.com` diferente; o celular segue em "Modo demonstração" e nunca reconecta sozinho, porque está tentando o endereço velho | Validar a URL nova por `curl -s https://<nova>/api/health`. No celular: **toque longo no selo** → colar a URL nova → **Salvar URL** → **Testar conexão** → **fechar e reabrir o app** pelo ícone. Só depois de reabrir o selo vira "Painel ao vivo". Atenção: reabrir o app **volta a jornada para o Ato 1** | ~90–120 s no total (~60 s de túnel + ~30–60 s no celular), com o celular na mão na frente da banca e a demo recomeçando do início — **por isso, no meio da apresentação, prefira terminar em auto-play** |
 | **Servidor trava** (`npm run dev` morre ou fica pendurado) | `curl http://localhost:4000/api/health` não responde | O app já caiu em auto-play sozinho. Terminar a demo assim. Só depois: `lsof -ti:4000 \| xargs kill -9` e `npm run dev` de novo; o app reconecta em ~15 s | 0 s para a demo; ~30 s para restaurar o painel |
 | **Painel não responde aos cliques** | Botões clicam e nada acontece; "Conexão: desconectado" no topo | Recarregar a página `http://localhost:4000/panel/` (Cmd+R). Se persistir, dirigir por `curl` (apêndice A) | ~15 s |
 | **App não abre / fecha na abertura** | Ícone abre e fecha, ou aviso de desenvolvedor não confiável | **Isto é a expiração de 7 dias.** Não tem conserto no local sem MacBook + cabo + ~10 min. Plano imediato: abrir o app no **simulador iOS** do MacBook e espelhar o MacBook. Prevenção: a reinstalação de 12/09 | 10–15 min se tentar reinstalar; ~2 min pelo simulador |
@@ -351,6 +422,8 @@ Marque tudo. Se algum item falhar, você ainda tem tempo de cair para o auto-pla
 - [ ] `curl -s https://<url-do-tunel>/api/health` retorna `{"status":"ok"}` (se for usar painel)
 - [ ] Painel aberto em `http://localhost:4000/panel/` com "Conexão: conectado"
 - [ ] Velocidade da simulação em **1x** e relógio definido em `2026-09-13T20:00`
+- [ ] URL do túnel salva na tela de configuração **e o app reaberto pelo ícone depois de
+      salvar** (sem reabrir, a URL não vale)
 - [ ] Selo do app confirmado como **"Painel ao vivo"** após um evento de teste
 - [ ] Simulador iOS aberto no MacBook, com o app instalado, como plano B silencioso
 
@@ -372,27 +445,31 @@ Marque tudo. Se algum item falhar, você ainda tem tempo de cair para o auto-pla
    Avanços de ato (ir para frente no roteiro) sempre passam, independentemente do toque.
 3. **Não reinicie o app porque o selo demorou a mudar.** A reconexão ao painel leva até
    ~15 s por desenho. Reiniciar joga fora o estado da jornada e volta ao Ato 1.
-4. **Não abra a Central de Controle nem a central de notificações** durante o
+4. **Não segure o dedo no selo de fonte de dados.** Um toque longo de ~0,8 s abre a tela
+   "Servidor da demo" na frente da banca. Toque curto é inofensivo; se a tela abrir por
+   engano, saia por **Voltar para a viagem** — ela volta para o ato atual e não altera
+   nada, desde que você não toque em "Salvar URL" nem em "Limpar e voltar ao padrão".
+5. **Não abra a Central de Controle nem a central de notificações** durante o
    espelhamento — some com a tela e mostra notificações pessoais.
-5. **Não desative o modo avião correndo** depois do Ato 3. Deixe o público ver o QR
+6. **Não desative o modo avião correndo** depois do Ato 3. Deixe o público ver o QR
    por alguns segundos antes; é o momento mais convincente da demo.
 
 **No MacBook**
 
-6. **Não espelhe a tela do MacBook.** É onde está o painel. Ver os botões "Risco de
+7. **Não espelhe a tela do MacBook.** É onde está o painel. Ver os botões "Risco de
    perda" e "Atraso 25 min" sendo clicados apaga o efeito da demo.
-7. **Não clique em cenas fora de ordem.** Disparar "Chegada" no Ato 2 leva o app direto
+8. **Não clique em cenas fora de ordem.** Disparar "Chegada" no Ato 2 leva o app direto
    para a tela final e não há como voltar sem rebobinar a fase.
-8. **Não mude a velocidade no meio do roteiro.** 20x/60x é ferramenta de ensaio; ao vivo,
+9. **Não mude a velocidade no meio do roteiro.** 20x/60x é ferramenta de ensaio; ao vivo,
    acelera os eventos e some com os cards antes de você narrar.
-9. **Não mate o `npm run dev` para "reiniciar rapidinho".** O app cai em auto-play e
+10. **Não mate o `npm run dev` para "reiniciar rapidinho".** O app cai em auto-play e
    reassume o roteiro do zero do ato atual; se você não precisava disso, criou um problema.
-10. **Não rode `npm install`, `expo prebuild` ou qualquer build no dia.** Nada é
+11. **Não rode `npm install`, `expo prebuild` ou qualquer build no dia.** Nada é
     reinstalado, atualizado ou "só verificado" no dia da apresentação.
 
 **De discurso**
 
-11. **Não apresente o dado simulado como real.** Diga você mesmo que a telemetria é
+12. **Não apresente o dado simulado como real.** Diga você mesmo que a telemetria é
     simulada e explique a arquitetura de eventos — para uma banca de Data, honestidade
     sobre a fonte vale mais do que a ilusão.
 
@@ -463,11 +540,21 @@ curl -s http://localhost:4000/api/engine
 | WebSocket de eventos | `ws://localhost:4000/ws` (pelo túnel: `wss://.../ws`) |
 | Metro (só em desenvolvimento) | `http://localhost:8081` |
 | Bundle identifier iOS | `br.com.jornadaviva.app` |
+| Tela de configuração do app | rota `/server-settings`, aberta só por **toque longo no selo** |
+| Onde a URL salva fica no aparelho | AsyncStorage, chave `jornada/server-url/v1` |
 
-A porta 4000 está fixa no app (`app/src/services/connection.ts`, constante `SERVER_PORT`).
-Subir o servidor em outra porta com `PORT=4100 npm run dev` exige que a URL informada na
-tela de configuração do app carregue a porta certa — no túnel isso é transparente, porque
-a URL do túnel não expõe porta.
+A porta 4000 só é assumida pelo app na fonte de fallback do Metro
+(`app/src/services/serverConfig.ts`, constante `DEFAULT_SERVER_PORT`) — isto é, apenas em
+desenvolvimento. Na URL colada na tela de configuração vale o que estiver escrito: subir o
+servidor em outra porta com `PORT=4100 npm run dev` exige colar a porta certa
+(`http://<ip>:4100`). No túnel isso é transparente, porque a URL do túnel não expõe porta.
+
+**A URL do servidor não é fixada no build.** O `app.json` deste projeto **não** define
+`expo.extra.demoServerUrl`, então a fonte "padrão do build" está vazia e nunca é usada
+hoje. Em build Release, o único caminho para o painel ao vivo é a URL salva na tela de
+configuração. Se algum dia o time decidir embutir uma URL fixa, é acrescentar
+`"extra": { "demoServerUrl": "https://..." }` ao `app.json` e **gerar um build novo** —
+o que só faz sentido para um endereço estável, nunca para um quick tunnel.
 
 ---
 
