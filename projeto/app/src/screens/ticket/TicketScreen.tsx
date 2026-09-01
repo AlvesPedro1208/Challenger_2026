@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton, Screen, StatusPill } from '@/components/ui';
 import { navigateToPhaseRoute } from '@/navigation/phaseRoutes';
-// Same floating glyph the map uses, so "back" looks identical everywhere the
-// demo can strand the passenger. Reused rather than copied: it is a leaf
+// Same floating glyph the operator screen uses, so "back" looks identical on
+// every screen that carries one. Reused rather than copied: it is a leaf
 // control with no map dependency.
 import { MapBackButton } from '@/screens/map/MapBackButton';
 import {
@@ -44,15 +44,24 @@ export function TicketScreen() {
   const isOffline = connection !== 'panel';
 
   /**
-   * The ticket is reached by a push, but the screen underneath it may have been
-   * replaced by a phase change while the QR code was open, so the way out aims
-   * at the act being presented instead of popping blindly.
+   * The tab bar is the way back to Viagem, Mapa and Pontualidade, so the ticket
+   * only needs a control of its own while the act underneath it has no tab:
+   * Terminal and Chegada are opened by the journey, never chosen from the bar,
+   * and "Abrir bilhete" in the terminal would otherwise be a one-way door.
+   *
+   * The target is the act being presented rather than a blind pop: the screen
+   * underneath may have been replaced by a phase change while the QR code was
+   * open.
    */
+  const tablessAct = phase === 'TERMINAL' || phase === 'ARRIVED';
+
   const header = (
     <>
-      <View style={styles.navRow}>
-        <MapBackButton onPress={() => navigateToPhaseRoute(router, phase, pathname)} />
-      </View>
+      {tablessAct ? (
+        <View style={styles.navRow}>
+          <MapBackButton onPress={() => navigateToPhaseRoute(router, phase, pathname)} />
+        </View>
+      ) : null}
       <Text style={styles.title}>Bilhete</Text>
     </>
   );

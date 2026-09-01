@@ -8,7 +8,11 @@ type MapBackButtonProps = {
   onPress: () => void;
 };
 
-/** Floating back control: the map is a full-bleed screen with no navigation header. */
+/**
+ * Floating back control for the screens that need one of their own: the ticket
+ * opened from an act with no tab, and the operator settings screen, both
+ * reached with no stack to pop and no navigation header.
+ */
 export function MapBackButton({ onPress }: MapBackButtonProps) {
   return (
     <Pressable

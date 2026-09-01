@@ -4,8 +4,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { DemoPhase } from '@jornada/shared';
 
 import { AlertBanner, Card, PrimaryButton, Screen } from '@/components/ui';
-import type { BackRouter } from '@/navigation';
-import { navigateToPhaseRoute, PHASE_ROUTES } from '@/navigation/phaseRoutes';
 import {
   selectClockIso,
   selectIndoorMap,
@@ -27,30 +25,12 @@ function isAfter(phase: DemoPhase, reference: DemoPhase): boolean {
   return PHASE_ORDER.indexOf(phase) > PHASE_ORDER.indexOf(reference);
 }
 
-/** The route this screen is mounted at, and the one the TERMINAL phase owns. */
-const OWN_ROUTE = PHASE_ROUTES.TERMINAL;
-
 /**
- * Way out of the terminal for the states that are not the boarding itself.
- *
- * Purple keeps the secondary exit visible without competing with the pink
- * primary action, and it aims at the screen the live phase owns: the demo
- * reaches this screen with `replace`, so there is no stack to pop and no
- * swipe-back, and a plain back control would land on the home screen instead
- * of the act being presented.
+ * The terminal has no tab of its own, but the tab bar stays on screen under it,
+ * so Viagem, Mapa, Bilhete and Pontualidade are always one tap away. The screen
+ * therefore carries only the action the moment asks for — the ticket at the
+ * gate — and no exit control of its own.
  */
-function LeaveTerminalButton({ router, phase }: { router: BackRouter; phase: DemoPhase }) {
-  return (
-    <View style={styles.section}>
-      <PrimaryButton
-        label="Voltar para a viagem"
-        variant="purple"
-        onPress={() => navigateToPhaseRoute(router, phase, OWN_ROUTE)}
-      />
-    </View>
-  );
-}
-
 export function TerminalScreen() {
   const router = useRouter();
   const phase = useJourneyStore(selectPhase);
@@ -109,8 +89,6 @@ export function TerminalScreen() {
         <View style={styles.section}>
           <PrimaryButton label="Abrir bilhete" onPress={() => router.push('/ticket')} />
         </View>
-
-        <LeaveTerminalButton router={router} phase={phase} />
       </Screen>
     );
   }
@@ -139,11 +117,6 @@ export function TerminalScreen() {
             ) : null}
           </Card>
         </View>
-
-        {/* The exit sits above the preview, not under it: this branch is where
-            a stray tap lands during the demo, and the way out has to be on
-            screen without scrolling. */}
-        <LeaveTerminalButton router={router} phase={phase} />
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Prévia do mapa</Text>

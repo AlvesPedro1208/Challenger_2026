@@ -1,9 +1,8 @@
-import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { NOVO_RIO_POIS, USER_ROUTE_STATS } from '@jornada/shared';
 
-import { PrimaryButton, Screen } from '@/components/ui';
+import { Screen } from '@/components/ui';
 import {
   selectArrived,
   selectBus,
@@ -29,8 +28,13 @@ import { WelcomeHeader } from './WelcomeHeader';
 
 const MAX_MEAL_SUGGESTIONS = 3;
 
+/**
+ * The arrival has no tab of its own, but the tab bar stays on screen under it:
+ * Mapa and Pontualidade are one tap away, so this screen keeps only what the
+ * moment of stepping off the bus is about — where to eat, what is open nearby
+ * and the passenger's own record on the route.
+ */
 export function ArrivalScreen() {
-  const router = useRouter();
   const trip = useJourneyStore(selectTrip);
   const clockIso = useJourneyStore(selectClockIso);
   const bus = useJourneyStore(selectBus);
@@ -58,10 +62,6 @@ export function ArrivalScreen() {
 
         <View style={styles.section}>
           <RouteHistoryCard stats={USER_ROUTE_STATS} trip={trip} includeCurrentTrip={false} />
-        </View>
-
-        <View style={styles.section}>
-          <PrimaryButton label="Acompanhar no mapa" onPress={() => router.push('/map')} />
         </View>
       </Screen>
     );
@@ -103,18 +103,6 @@ export function ArrivalScreen() {
       <View style={styles.section}>
         <RouteHistoryCard stats={USER_ROUTE_STATS} trip={trip} includeCurrentTrip />
       </View>
-
-      <View style={styles.section}>
-        <PrimaryButton label="Ver o terminal no mapa" onPress={() => router.push('/map')} />
-      </View>
-
-      <View style={styles.secondaryAction}>
-        <PrimaryButton
-          label="Ver pontualidade desta rota"
-          variant="purple"
-          onPress={() => router.push('/stats')}
-        />
-      </View>
     </Screen>
   );
 }
@@ -135,9 +123,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: spacing.md,
-  },
-  secondaryAction: {
-    marginTop: spacing.sm,
   },
   sectionLabel: {
     ...typography.sectionLabel,

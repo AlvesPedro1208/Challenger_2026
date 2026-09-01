@@ -1,8 +1,6 @@
-import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen } from '@/components/ui';
-import { navigateBack } from '@/navigation';
+import { Card, Screen } from '@/components/ui';
 import {
   selectDailySeries,
   selectStats,
@@ -19,14 +17,13 @@ import { MetricCards } from './MetricCards';
 import { NextActionCard } from './NextActionCard';
 
 export function StatsScreen() {
-  const router = useRouter();
   const stats = useJourneyStore(selectStats);
   const dailySeries = useJourneyStore(selectDailySeries);
   const trip = useJourneyStore(selectTrip);
 
-  // Without stats the screen must still say what is missing and offer a way
-  // out: in airplane mode the data never arrives, and a bare skeleton would
-  // pulse forever with no visible exit.
+  // Without stats the screen must still say what is missing: in airplane mode
+  // the data never arrives, and a bare skeleton would pulse forever. The tab
+  // bar is the way out of the empty state.
   if (!stats) {
     return (
       <Screen>
@@ -40,9 +37,6 @@ export function StatsScreen() {
               volta assim que o app reconectar.
             </Text>
           </Card>
-        </View>
-        <View style={styles.section}>
-          <PrimaryButton label="Voltar para a viagem" onPress={() => navigateBack(router)} />
         </View>
       </Screen>
     );
@@ -82,10 +76,6 @@ export function StatsScreen() {
 
       <View style={styles.section}>
         <NextActionCard riskPct={riskPct} avgDelayMin={avgDelayMin} />
-      </View>
-
-      <View style={styles.section}>
-        <PrimaryButton label="Voltar para a viagem" onPress={() => navigateBack(router)} />
       </View>
 
       <Text style={styles.footnote}>
