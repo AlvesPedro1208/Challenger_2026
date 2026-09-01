@@ -172,3 +172,19 @@ regra para novas telas nao nascerem sem saida.
 
 Agravante ja conhecido: a navegacao por fase usa router.replace, entao a pilha fica
 vazia e o swipe-back do iOS nao funciona — a saida TEM que ser visivel na tela.
+
+## Sequenciamento definido em 01/09/2026
+
+Decisao do Pedro: o desenvolvimento e a validacao acontecem NO SIMULADOR. O iPhone fisico
+so entra quando o projeto estiver pronto.
+
+Consequencias:
+- A expiracao de 7 dias do Apple ID gratuito NAO e risco imediato — o simulador nao expira.
+  Ela volta a valer quando decidirem instalar no aparelho; o runbook ja tem as datas.
+- O tunel (cloudflared) esta PROVADO ponta a ponta e documentado, mas fora do caminho critico.
+  Latencia medida: +44 ms por evento, zero perda em 80 eventos.
+- A tela de configuracao de servidor e ferramenta para a fase do aparelho; manter, sem urgencia.
+- Prioridade atual: qualidade da experiencia no simulador (barra de abas, saidas de navegacao,
+  teclado, relogio inicial do cenario).
+- Ao migrar para o aparelho: gerar binario novo (o de 31/08 12:03 nao tem a tela de
+  configuracao) e conferir se ha install fantasma com bundle com.anonymous.jornada-viva.
