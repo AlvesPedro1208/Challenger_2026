@@ -314,6 +314,24 @@ como fixá-la sem gerar um build novo.
 
 ---
 
+### Aviso sobre o comando de build Release
+
+`npx expo run:ios --configuration Release` termina com um erro de `openUrlAsync` depois de
+compilar. Isso NAO significa que o build falhou: o CLI tenta abrir o app pelo deep link do
+dev-client, que nao existe num build Release. O `.app` foi compilado e instalado normalmente.
+
+Confirme e abra manualmente:
+
+```bash
+xcrun simctl launch <UDID> br.com.jornadaviva.app
+```
+
+Para conferir que o build e recente, veja a data do bundle embutido:
+
+```bash
+ls -la ~/Library/Developer/Xcode/DerivedData/JornadaViva-*/Build/Products/Release-iphonesimulator/JornadaViva.app/main.jsbundle
+```
+
 ## 4. Roteiro dos cinco atos
 
 O roteiro completo tem 36 passos e dura **cerca de 3 min 45 s em velocidade 1x** —
