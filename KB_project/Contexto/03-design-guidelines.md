@@ -70,3 +70,18 @@ da experiência.
 > Cada tela deve transformar dados em **uma próxima ação óbvia** para o passageiro.
 > Informação sem ação vira ruído — princípio "Orientação Viva" do deck legado, que é
 > a única herança conceitual (além do visual) que mantemos dele.
+
+## Regra de cor dos botoes (definida em 31/08/2026)
+
+A cor do PrimaryButton codifica a POSICAO do botao na hierarquia DA TELA, nunca o
+significado do label. Por isso o mesmo texto pode ter cores diferentes em telas diferentes.
+
+- Rosa (variante padrao): a UNICA acao primaria da tela. Exatamente uma por tela.
+- Roxo: qualquer acao secundaria numa tela que ja tem um rosa.
+- Verde: RESERVADO para estado, nao para botao. Verde no app significa confirmado/conectado
+  (StatusPill tone success, selo "Painel ao vivo"). Nao usar em PrimaryButton.
+
+Conferido contra o app inteiro: Stats (rosa unico), Terminal (rosa + roxo), Chegada
+(rosa + roxo) ja seguem a regra. Debito futuro (NAO fazer antes de 13/09): criar
+variante ghost (fundo transparente, borda hairline, label secundario) para saidas
+terciarias — hoje duas acoes secundarias na mesma tela ficam ambas roxas.

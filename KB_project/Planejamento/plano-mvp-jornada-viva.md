@@ -145,3 +145,16 @@ Pendente apos desbloquear:
    (useRef(new Animated.Value())) — correcao mecanica e const [x] = useState(() => new Animated.Value()).
 6. Opcional com spec: caminho "sair agora" no card de risco (Ato 1).
 7. Deduplicar cityName (existe em screens/stats/helpers.ts e em lib/place.ts).
+
+## Achados da revisao de design da tela de servidor (31/08/2026) — pendentes
+
+ALTO: Screen.tsx sem keyboardShouldPersistTaps — com teclado aberto, o PRIMEIRO toque em
+"Salvar URL"/"Testar conexao" e engolido; le como app travado na frente da banca.
+ALTO: feedback do teste de conexao distingue sucesso/erro so por cor, 13pt, texto solto
+(verde x rosa e o par que deuteranopia colapsa; ilegivel em projetor).
+MEDIO: botao verde viola a regra de cor (deve ser roxo); toque longo re-entrante empilha
+copias da tela; selo com ~20pt de alvo (falta hitSlop); campo de texto visualmente
+identico ao card (1.1:1) e sem estado de foco; CurrentBaseCard nao distingue a qualidade
+da fonte (metro em release = app apontado para lugar nenhum, mas aparece igual a override).
+BAIXO: sem accessibilityLiveRegion no feedback; role=button sem onPress no selo;
+prop title de Screen e codigo morto; "Limpar" sem confirmacao; sem returnKeyType.
