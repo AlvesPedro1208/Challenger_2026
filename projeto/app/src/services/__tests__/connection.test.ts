@@ -6,6 +6,14 @@ import { useJourneyStore } from '@/state/store';
 
 import { connectToDemoServer, parseDemoEvent } from '../connection';
 
+/* eslint-disable @typescript-eslint/no-require-imports -- jest.mock factories are hoisted above imports */
+// The module under test resolves its URL through serverConfig, which reads the
+// saved override from AsyncStorage; its native module is null under Jest.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+/* eslint-enable @typescript-eslint/no-require-imports */
+
 const URL = 'ws://localhost:4000/ws';
 
 /** Minimal stand-in for the RN WebSocket, driven by the test. */

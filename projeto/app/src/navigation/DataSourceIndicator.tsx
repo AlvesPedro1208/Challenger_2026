@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { selectConnection, useJourneyStore, type ConnectionMode } from '@/state/store';
@@ -14,6 +15,9 @@ const SOURCES: Record<ConnectionMode, SourceStyle> = {
 
 const LOADING: SourceStyle = { label: 'Carregando', color: colors.text.secondary };
 
+/** Long press, so a stray tap during the presentation never opens it. */
+const SETTINGS_LONG_PRESS_MS = 800;
+
 type DataSourceIndicatorProps = {
   booting?: boolean;
 };
@@ -24,20 +28,33 @@ type DataSourceIndicatorProps = {
  * It sits in the top strip, above the first line of content on every screen:
  * the bottom of the screens belongs to the primary action (the ticket button,
  * the map status cards) and the badge used to cover it.
+ *
+ * It doubles as the only way into the server settings: a long press on the
+ * badge opens them. The badge already answers "de onde vêm os dados?", so the
+ * screen that changes that answer belongs behind it — and a gesture with no
+ * visible affordance keeps the demo interface clean. Only the badge itself
+ * takes touches; the rest of the strip stays transparent to the screen below.
  */
 export function DataSourceIndicator({ booting = false }: DataSourceIndicatorProps) {
   const connection = useJourneyStore(selectConnection);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const source = booting ? LOADING : SOURCES[connection];
 
   return (
-    <View pointerEvents="none" style={[styles.wrapper, { top: insets.top, right: spacing.md }]}>
-      <View style={styles.badge}>
+    <View pointerEvents="box-none" style={[styles.wrapper, { top: insets.top, right: spacing.md }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Fonte dos dados: ${source.label}. Toque longo para configurar o servidor.`}
+        delayLongPress={SETTINGS_LONG_PRESS_MS}
+        onLongPress={() => router.push('/server-settings')}
+        style={({ pressed }) => [styles.badge, pressed && styles.pressed]}
+      >
         <View style={styles.row}>
           <View style={[styles.dot, { backgroundColor: source.color }]} />
           <Text style={[styles.label, { color: source.color }]}>{source.label}</Text>
         </View>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -56,6 +73,9 @@ const styles = StyleSheet.create({
     borderColor: colors.hairline.onDark,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   row: {
     flexDirection: 'row',

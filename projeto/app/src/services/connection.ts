@@ -2,9 +2,9 @@ import Constants from 'expo-constants';
 
 import type { DemoEvent, DemoEventType } from '@jornada/shared';
 
+import { currentServerBase } from '@/services/serverConfig';
 import { useJourneyStore } from '@/state/store';
 
-const SERVER_PORT = 4000;
 const DEFAULT_MAX_ATTEMPTS = 5;
 const MAX_BACKOFF_MS = 8000;
 
@@ -25,12 +25,17 @@ export function resolveServerHost(): string {
   return 'localhost';
 }
 
+/**
+ * Both bases come from `serverConfig`, which honours the URL the operator
+ * saved on the device (a tunnel, on presentation day) before falling back to
+ * the build default and finally to the Metro host used here in development.
+ */
 export function httpBaseUrl(): string {
-  return `http://${resolveServerHost()}:${SERVER_PORT}`;
+  return currentServerBase().httpBaseUrl;
 }
 
 export function wsUrl(): string {
-  return `ws://${resolveServerHost()}:${SERVER_PORT}/ws`;
+  return currentServerBase().wsUrl;
 }
 
 const EVENT_TYPES: ReadonlySet<string> = new Set<DemoEventType>([
