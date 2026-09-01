@@ -35,8 +35,6 @@ function distanceToRoute(p: RoutePoint): number {
   return best;
 }
 
-const scriptedOffsets = new Set(spRioScenario.steps.map((step) => step.afterMs));
-
 describe('expandScenarioSteps', () => {
   const expanded = expandScenarioSteps(spRioScenario);
 
@@ -79,17 +77,17 @@ describe('expandScenarioSteps', () => {
     }
   });
 
-  it('never makes the countdown to the next stop climb between samples', () => {
+  it('never makes the countdown to the next stop climb outside a handover', () => {
     const telemetry = expanded.filter((step) => step.event.type === 'BUS_TELEMETRY');
 
     for (let i = 1; i < telemetry.length; i += 1) {
       const prev = telemetry[i - 1]!.event as Extract<DemoEvent, { type: 'BUS_TELEMETRY' }>;
-      const step = telemetry[i]!;
-      const current = step.event as Extract<DemoEvent, { type: 'BUS_TELEMETRY' }>;
-      // A climb only ever happens on a scripted sample, where the countdown
-      // legitimately restarts against the following stop.
+      const current = telemetry[i]!.event as Extract<DemoEvent, { type: 'BUS_TELEMETRY' }>;
+      // A climb only ever happens right off a stop the bus is parked at, where
+      // the countdown legitimately restarts against the following target.
       if (current.etaNextStopMin > prev.etaNextStopMin) {
-        expect(scriptedOffsets.has(step.afterMs)).toBe(true);
+        expect(prev.speedKmh).toBe(0);
+        expect(prev.etaNextStopMin).toBe(0);
       }
     }
   });

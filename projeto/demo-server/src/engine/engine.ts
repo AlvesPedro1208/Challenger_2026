@@ -73,6 +73,24 @@ function routeFraction(lat: number, lng: number): number {
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
+/**
+ * The simulated instant a scenario opens at: the isoTime of its earliest
+ * CLOCK_SET step, or the stamp of its earliest step when the script sets no
+ * clock of its own. Null when nothing in the script carries a usable stamp.
+ *
+ * Starting a scenario anchors the simulated clock here, so the demo never runs
+ * on wall time while waiting for the opening CLOCK_SET to be fired: an app that
+ * reads the clock in between (GET /bootstrap does) would otherwise count down
+ * to the departure from the real date, off by whole days.
+ */
+export function scenarioStartIso(scenario: Scenario): string | null {
+  const sorted = [...scenario.steps].sort((a, b) => a.afterMs - b.afterMs);
+  const clockSet = sorted.find((step) => step.event.type === "CLOCK_SET");
+  const iso = clockSet?.event.type === "CLOCK_SET" ? clockSet.event.isoTime : sorted[0]?.event.at;
+  if (!iso || Number.isNaN(Date.parse(iso))) return null;
+  return iso;
+}
+
 interface TelemetryAnchor {
   afterMs: number;
   fraction: number;
@@ -180,13 +198,24 @@ export class ScenarioEngine {
     this.lastEmittedAtMs = Number.NEGATIVE_INFINITY;
     this.buildTimeline();
     this.journeyState.reset();
-    if (this.clock.isPaused()) this.clock.resume();
+    this.anchorClock(scenario);
     this.status = "running";
     this.lastWallMs = Date.now();
     this.process();
     if (this.status === "running") {
       this.timer = setInterval(() => this.tick(), this.tickMs);
     }
+  }
+
+  /**
+   * Puts the simulated clock on the scenario before a single step fires, so
+   * nothing reads wall time in between. A later SET_CLOCK from the panel still
+   * re-anchors it wherever the operator wants.
+   */
+  private anchorClock(scenario: Scenario): void {
+    if (this.clock.isPaused()) this.clock.resume();
+    const startIso = scenarioStartIso(scenario);
+    if (startIso) this.clock.setBase(startIso);
   }
 
   pause(): void {

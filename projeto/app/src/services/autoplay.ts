@@ -3,10 +3,22 @@ import { haversineKm, pointAtFraction, ROUTE_POINTS, spRioScenario } from '@jorn
 
 import { useJourneyStore } from '@/state/store';
 
+/** The last telemetry the store applied, as a fingerprint of where the bus is. */
+export interface ResumeTelemetry {
+  lat: number;
+  lng: number;
+  etaNextStopMin: number | null;
+}
+
 /** Where the journey already is, as the store knows it. */
 export interface ResumePoint {
   phase?: DemoPhase | null;
   clockIso?: string | null;
+  /**
+   * Breaks the tie between steps that share a stamp: the clock alone cannot
+   * say which of them the store already applied.
+   */
+  telemetry?: ResumeTelemetry | null;
 }
 
 export interface AutoplayOptions {
@@ -35,6 +47,8 @@ const TELEMETRY_INTERVAL_MS = 2000;
 
 /** The whole demo happens in Sao Paulo, which has a fixed -03:00 offset. */
 const SIM_OFFSET_MS = -3 * 60 * 60 * 1000;
+
+const MINUTE_MS = 60_000;
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
@@ -119,6 +133,34 @@ function simAtMs(points: TimelinePoint[], afterMs: number): number {
   return last.atMs;
 }
 
+/**
+ * ETA to the next stop, aware of the handover between stops, mirroring
+ * ScenarioEngine.etaAtInstant. While both anchors count toward the same stop
+ * the value falls and interpolating is right. When the next anchor already
+ * counts toward a LATER stop its value is higher, and interpolating would make
+ * the countdown climb on screen: run the previous anchor's countdown down to
+ * its stop instead, then count toward the next one, backwards from the next
+ * anchor. Holding the previous value instead would put auto-play minutes away
+ * from what the server broadcasts, which is what makes a failover visible.
+ */
+function etaAtInstant(
+  prev: TelemetryAnchor,
+  next: TelemetryAnchor,
+  instant: { afterMs: number; atMs: number },
+  timeline: TimelinePoint[],
+): number {
+  const prevEta = prev.event.etaNextStopMin;
+  const nextEta = next.event.etaNextStopMin;
+  if (nextEta <= prevEta) {
+    const t = (instant.afterMs - prev.afterMs) / (next.afterMs - prev.afterMs);
+    return Math.round(lerp(prevEta, nextEta, t));
+  }
+  const elapsedMin = (instant.atMs - simAtMs(timeline, prev.afterMs)) / MINUTE_MS;
+  if (elapsedMin < prevEta) return Math.round(prevEta - elapsedMin);
+  const remainingMin = (simAtMs(timeline, next.afterMs) - instant.atMs) / MINUTE_MS;
+  return Math.round(nextEta + Math.max(0, remainingMin));
+}
+
 function interpolateTelemetry(
   prev: TelemetryAnchor,
   next: TelemetryAnchor,
@@ -127,19 +169,16 @@ function interpolateTelemetry(
 ): BusTelemetryEvent {
   const t = (afterMs - prev.afterMs) / (next.afterMs - prev.afterMs);
   const position = pointAtFraction(lerp(prev.fraction, next.fraction, t));
-  const prevEta = prev.event.etaNextStopMin;
-  const nextEta = next.event.etaNextStopMin;
+  const atMs = simAtMs(timeline, afterMs);
 
   return {
     type: 'BUS_TELEMETRY',
-    at: formatSimIso(simAtMs(timeline, afterMs)),
+    at: formatSimIso(atMs),
     lat: position.lat,
     lng: position.lng,
     speedKmh: Math.round(lerp(prev.event.speedKmh, next.event.speedKmh, t)),
     heading: position.heading,
-    // A countdown climbing on screen reads as a bug, so once the next sample
-    // already counts toward a LATER stop the value holds until that sample.
-    etaNextStopMin: nextEta <= prevEta ? Math.round(lerp(prevEta, nextEta, t)) : prevEta,
+    etaNextStopMin: etaAtInstant(prev, next, { afterMs, atMs }, timeline),
     etaDestinationIso: prev.event.etaDestinationIso,
   };
 }
@@ -181,9 +220,32 @@ export function expandScenarioSteps(scenario: Scenario): ScenarioStep[] {
     }
   }
 
-  // Array.prototype.sort is stable, so a scripted step stays ahead of an
-  // interpolated sample that lands on the same offset.
-  return [...steps, ...interpolated].sort((a, b) => a.afterMs - b.afterMs);
+  // Array.prototype.sort is stable, and the engine flushes the interpolated
+  // samples due at an offset before firing the scripted step sitting on it, so
+  // interpolated goes first here too: same order on the wire and in auto-play.
+  return stampMonotonically([...interpolated, ...steps].sort((a, b) => a.afterMs - b.afterMs));
+}
+
+/**
+ * Mirrors ScenarioEngine.stamp: no step is ever stamped before the one already
+ * played, because the store follows the `at` of every event and a stamp going
+ * backwards rewinds the whole screen. A CLOCK_SET is the sanctioned way to move
+ * the demo timeline, so it re-anchors the floor instead of being held by it.
+ */
+function stampMonotonically(steps: ScenarioStep[]): ScenarioStep[] {
+  let floorMs = Number.NEGATIVE_INFINITY;
+  return steps.map((step) => {
+    const event = step.event;
+    if (event.type === 'CLOCK_SET') {
+      const anchor = Date.parse(event.isoTime);
+      floorMs = Number.isNaN(anchor) ? floorMs : anchor;
+    }
+    const parsed = Date.parse(event.at);
+    if (Number.isNaN(parsed)) return step;
+    const at = formatSimIso(Math.max(parsed, floorMs));
+    floorMs = Date.parse(at);
+    return event.at === at ? step : { afterMs: step.afterMs, event: { ...event, at } };
+  });
 }
 
 interface ActStart {
@@ -224,12 +286,46 @@ function clockOnTimeline(steps: ScenarioStep[], clockIso: string | null | undefi
 }
 
 /**
+ * Several steps can share one stamp (a scripted event and the telemetry sample
+ * on the same instant), and the clock cannot say which of them the store
+ * already applied. The telemetry the store holds can: it fingerprints exactly
+ * one sample. Returns the index right after the last sample in the run that
+ * matches it, or the run's first sample when none does — resuming there
+ * replays no scripted event and drops no pending telemetry.
+ */
+function tieBreakOnTelemetry(
+  steps: ScenarioStep[],
+  runStart: number,
+  runEnd: number,
+  telemetry: ResumeTelemetry,
+): number | null {
+  let first: number | null = null;
+  let lastMatch: number | null = null;
+  for (let i = runStart; i < runEnd; i += 1) {
+    const event = steps[i]!.event;
+    if (event.type !== 'BUS_TELEMETRY') continue;
+    if (first === null) first = i;
+    // A parked bus repeats the same sample, so the last match is the one the
+    // stream had reached.
+    if (
+      event.lat === telemetry.lat &&
+      event.lng === telemetry.lng &&
+      event.etaNextStopMin === telemetry.etaNextStopMin
+    ) {
+      lastMatch = i;
+    }
+  }
+  return lastMatch === null ? first : lastMatch + 1;
+}
+
+/**
  * Index of the first step to play when the store already lived part of the
  * journey. The phase picks the act — the coarse anchor that can always be
- * trusted — and the clock advances inside it, skipping the steps whose
- * simulated instant has already passed. Skipped events are NOT replayed: the
- * store holds exactly what the server applied up to `clockIso`, so replaying
- * them would duplicate events and drag `clockIso` backwards.
+ * trusted — the clock advances inside it, skipping the steps whose simulated
+ * instant has already passed, and the last known telemetry settles the steps
+ * sharing the instant the clock stopped on. Skipped events are NOT replayed:
+ * the store holds exactly what the server applied up to `clockIso`, so
+ * replaying them would duplicate events and drag `clockIso` backwards.
  *
  * Falls back to 0 (the whole scenario) when the phase is unknown, and to the
  * start of the act when the clock is missing or off the scenario timeline.
@@ -247,9 +343,30 @@ export function resumeStepIndex(steps: ScenarioStep[], resume: ResumePoint): num
   const clockMs = clockOnTimeline(steps, resume.clockIso);
   if (clockMs === null) return start;
 
-  let index = start;
-  while (index < end && Date.parse(steps[index]!.event.at) <= clockMs) index += 1;
-  return index;
+  const { runStart, index } = clockRun(steps, { start, end }, clockMs);
+  if (!resume.telemetry || runStart >= index) return index;
+  return tieBreakOnTelemetry(steps, runStart, index, resume.telemetry) ?? index;
+}
+
+/**
+ * How far the clock alone gets inside an act: `index` is the first step still
+ * ahead of it, and `[runStart, index)` are the steps sitting exactly on the
+ * instant it stopped at — the ones it cannot order among themselves.
+ */
+function clockRun(
+  steps: ScenarioStep[],
+  act: { start: number; end: number },
+  clockMs: number,
+): { runStart: number; index: number } {
+  let index = act.start;
+  let runStart = act.start;
+  while (index < act.end) {
+    const at = Date.parse(steps[index]!.event.at);
+    if (at > clockMs) break;
+    if (at < clockMs) runStart = index + 1;
+    index += 1;
+  }
+  return { runStart, index };
 }
 
 /**
@@ -290,8 +407,11 @@ export function startAutoplay(options: AutoplayOptions = {}): void {
  * entry point: a server that dies in Act 4 must not rewind the journey to Act 1.
  */
 export function resumeAutoplay(options: Omit<AutoplayOptions, 'resumeFrom'> = {}): void {
-  const { phase, clockIso } = useJourneyStore.getState();
-  startAutoplay({ ...options, resumeFrom: { phase, clockIso } });
+  const { phase, clockIso, bus } = useJourneyStore.getState();
+  const telemetry: ResumeTelemetry | null = bus.position
+    ? { lat: bus.position.lat, lng: bus.position.lng, etaNextStopMin: bus.etaNextStopMin }
+    : null;
+  startAutoplay({ ...options, resumeFrom: { phase, clockIso, telemetry } });
 }
 
 export function stopAutoplay(): void {
