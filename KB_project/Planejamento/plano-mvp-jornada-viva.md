@@ -141,10 +141,9 @@ Pendente apos desbloquear:
 2. Reavaliar duracao dos cards de permanencia (Aparecida x Resende) agora que o relogio e monotonico.
 3. Conferir no projetor se o skeleton de stats le como "carregando"; se nao, subir alpha de bone.onDark.
 4. Larguras de botao/label conferidas por calculo, nao por render (faixa de acoes do mapa, grade de status).
-5. Burndown opcional: 14 dos 24 warnings do app sao react-hooks/refs em 3 linhas
-   (useRef(new Animated.Value())) — correcao mecanica e const [x] = useState(() => new Animated.Value()).
-6. Opcional com spec: caminho "sair agora" no card de risco (Ato 1).
-7. Deduplicar cityName (existe em screens/stats/helpers.ts e em lib/place.ts).
+5. FEITO (19/10/2026): borndown dos 14 warnings react-hooks/refs (3 skeletons com useState).
+6. FEITO (19/10/2026): caminho "Sair agora" no card de risco (Ato 1) - projeta a chegada ao terminal pelo ETA do TRAFFIC_ALERT e a margem ate a partida (alerta abaixo de 15 min)
+7. FEITO (19/10/2026): cityName deduplicado; status usa lib/place
 
 ## Achados da revisao de design da tela de servidor (31/08/2026) — pendentes
 

@@ -102,8 +102,3 @@ export function formatPeriod(series: DailyDelayPoint[]): string {
   if (!first || !last) return '';
   return `${formatShortDate(first.date)} – ${formatShortDate(last.date)}`;
 }
-
-/** Strips the parenthesised complement from a city name, e.g. "São Paulo (Tietê)". */
-export function cityName(place: string): string {
-  return place.replace(/\s*\(.*\)\s*$/, '').trim();
-}

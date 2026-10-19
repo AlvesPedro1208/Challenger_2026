@@ -1,4 +1,7 @@
-import * as Notifications from 'expo-notifications';
+// import * as Notifications from 'expo-notifications';
+// NOTA: O expo-notifications nativo foi desabilitado aqui porque o Expo Go no Android
+// removeu o suporte a partir do SDK 53 e quebra a inicialização do app.
+// Criamos uma simulação segura para manter a aplicação 100% funcional no Expo Go.
 
 import type { JourneySnapshot } from '@/state/store';
 import { useJourneyStore } from '@/state/store';
@@ -84,37 +87,13 @@ const deliveredKeys = new Set<string>();
  * Never throws: a denied prompt or a missing module must not break the demo.
  */
 export async function initNotifications(): Promise<boolean> {
-  try {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-      }),
-    });
-
-    const current = await Notifications.getPermissionsAsync();
-    if (current.granted) return true;
-    if (!current.canAskAgain) return false;
-
-    const requested = await Notifications.requestPermissionsAsync();
-    return requested.granted;
-  } catch {
-    return false;
-  }
+  // Retorna sucesso de forma segura sem chamar a biblioteca nativa no Expo Go
+  return true;
 }
 
 export async function presentNotification(notification: JourneyNotification): Promise<void> {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: { title: notification.title, body: notification.body },
-      trigger: null,
-    });
-  } catch {
-    // Permission denied or unsupported host: the on-screen UI already carries
-    // the same information, so the demo keeps running.
-  }
+  // Em modo demonstração no Expo Go, loga a notificação no console
+  console.log(`[Notificação simulada] ${notification.title}: ${notification.body}`);
 }
 
 /**

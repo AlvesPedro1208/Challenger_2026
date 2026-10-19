@@ -1,4 +1,5 @@
-import { Stack } from 'expo-router';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { ErrorBoundary, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -10,6 +11,12 @@ import { connectToDemoServer } from '@/services/connection';
 import { initNotifications, startNotificationBridge } from '@/services/notifications';
 import { hydrateFromCache, startJourneyCachePersistence } from '@/state/persistence';
 import { colors } from '@/theme/tokens';
+
+// Exporta o ErrorBoundary para que o Expo Router consiga tratar erros de tela
+export { ErrorBoundary };
+
+/** Detecta se o app está rodando dentro do Expo Go */
+const isExpoGo = Constants?.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /** Short retry budget so auto-play takes over within seconds if the Wi-Fi is down. */
 const WS_MAX_ATTEMPTS = 3;
@@ -28,7 +35,21 @@ function useDemoBoot(): boolean {
 
   useEffect(() => {
     let cancelled = false;
-    const cleanups: (() => void)[] = [startJourneyCachePersistence(), startNotificationBridge()];
+
+    // Inicia persistência de cache
+    const cleanups: (() => void)[] = [startJourneyCachePersistence()];
+
+    // Notificações remotas não são suportadas no Expo Go no Android (SDK 53+)
+    if (!isExpoGo) {
+      try {
+        const cleanupBridge = startNotificationBridge();
+        if (typeof cleanupBridge === 'function') {
+          cleanups.push(cleanupBridge);
+        }
+      } catch (err) {
+        console.warn('[Notifications] Bridge desabilitada no Expo Go:', err);
+      }
+    }
 
     const boot = async (): Promise<void> => {
       try {
@@ -46,18 +67,22 @@ function useDemoBoot(): boolean {
           maxAttempts: WS_MAX_ATTEMPTS,
           retryIntervalMs: WS_BACKGROUND_RETRY_MS,
           onGiveUp: () => {
-            // Picks the script up at the act the store is already in, so a
-            // server lost mid-demo never rewinds the journey to the start.
             if (!cancelled) resumeAutoplay();
           },
           onReconnected: () => {
-            // Panel events are already flowing; drop the scripted fallback so
-            // the two never drive the store at once.
             if (!cancelled) stopAutoplay();
           },
         }),
       );
-      void initNotifications();
+
+      // Protege a inicialização de notificações de quebrar o app
+      if (!isExpoGo) {
+        try {
+          await initNotifications();
+        } catch (err) {
+          console.warn('[Notifications] Init desabilitado no Expo Go:', err);
+        }
+      }
     };
 
     void boot();
@@ -65,7 +90,13 @@ function useDemoBoot(): boolean {
     return () => {
       cancelled = true;
       stopAutoplay();
-      cleanups.forEach((cleanup) => cleanup());
+      cleanups.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch {
+          // Garante que falhas de cleanup não travem o desmonte
+        }
+      });
     };
   }, []);
 

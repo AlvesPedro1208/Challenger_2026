@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, Screen } from '@/components/ui';
+import { cityName } from '@/lib/place';
 import {
   selectDailySeries,
   selectStats,
@@ -11,7 +12,6 @@ import { colors, spacing, typography } from '@/theme/tokens';
 
 import { DelayHistogram } from './DelayHistogram';
 import { DelaySparkline } from './DelaySparkline';
-import { cityName } from './helpers';
 import { HeroRisk } from './HeroRisk';
 import { MetricCards } from './MetricCards';
 import { NextActionCard } from './NextActionCard';

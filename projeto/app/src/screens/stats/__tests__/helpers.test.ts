@@ -3,7 +3,6 @@ import { describe, expect, it } from '@jest/globals';
 import type { DelayHistogramBucket } from '@jornada/shared';
 
 import {
-  cityName,
   dominantBucketIndex,
   formatPeriod,
   formatShortDate,
@@ -129,16 +128,5 @@ describe('date formatting', () => {
 
   it('returns empty period for an empty series', () => {
     expect(formatPeriod([])).toBe('');
-  });
-});
-
-describe('cityName', () => {
-  it('strips the terminal complement', () => {
-    expect(cityName('São Paulo (Terminal Tietê)')).toBe('São Paulo');
-    expect(cityName('Rio de Janeiro (Terminal Novo Rio)')).toBe('Rio de Janeiro');
-  });
-
-  it('keeps plain names untouched', () => {
-    expect(cityName('Campinas')).toBe('Campinas');
   });
 });

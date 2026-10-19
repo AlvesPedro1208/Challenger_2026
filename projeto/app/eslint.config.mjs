@@ -40,10 +40,9 @@ export default defineConfig([
       ...complexityBudgetRules,
       // Exhaustive deps has a real false-positive rate; it nudges, never blocks.
       'react-hooks/exhaustive-deps': 'warn',
-      // New in eslint-plugin-react-hooks 7 and currently violated by the canonical
-      // React Native `useRef(new Animated.Value(x)).current` idiom in the skeleton
-      // components. Stays a warning until that count reaches zero; promote then.
-      'react-hooks/refs': 'warn',
+      // Promoted once the skeleton dropped `useRef(new Animated .Value(x)).current`
+      // for `useState(() => new Animated.Value(x))`.
+      'react-hooks/refs': 'error',
     },
   },
 

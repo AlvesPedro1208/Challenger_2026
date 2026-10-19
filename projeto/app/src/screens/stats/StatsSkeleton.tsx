@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Animated,
   StyleSheet,
@@ -22,7 +22,7 @@ function Block({ height, width = '100%', style }: BlockProps) {
 }
 
 export function StatsSkeleton() {
-  const pulse = useRef(new Animated.Value(0.5)).current;
+  const [pulse] = useState(() => new Animated.Value(0.5));
 
   useEffect(() => {
     const loop = Animated.loop(
