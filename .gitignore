@@ -15,3 +15,5 @@ projeto/app/.expo/
 projeto/app/dist/
 projeto/demo-server/dist/
 *.tsbuildinfo
+
+.env

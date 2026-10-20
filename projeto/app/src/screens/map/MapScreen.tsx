@@ -18,6 +18,8 @@ import { colors, radii, spacing, typography } from '@/theme/tokens';
 import { ROUTE_POINTS, STOPS } from '@jornada/shared';
 
 import { BusMarker } from './BusMarker';
+import { nativeMapAvailable } from './mapSupport';
+import { RouteSchematic } from './RouteSchematic';
 import { StatusCards, type NextTarget, type StopHighlight } from './StatusCards';
 import { StopMarkers } from './StopMarkers';
 import { TrafficAlertCard } from './TrafficAlertCard';
@@ -43,6 +45,8 @@ export function MapScreen() {
   const trafficAlert = useJourneyStore(selectTrafficAlert);
   const trip = useJourneyStore(selectTrip);
 
+  //const [useNativeMap] = useState(nativeMapAvailable);
+  const useNativeMap = false;
   const mapRef = useRef<MapView>(null);
   const mapReadyRef = useRef(false);
 
@@ -167,24 +171,28 @@ export function MapScreen() {
 
   return (
     <View style={styles.root}>
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFill}
-        initialRegion={initialRegion}
-        userInterfaceStyle="dark"
-        onMapReady={handleMapReady}
-        showsCompass={false}
-        showsPointsOfInterests={false}
-        toolbarEnabled={false}
-      >
-        <Polyline
-          coordinates={routeCoords}
-          strokeColor={colors.accent.primary}
-          strokeWidth={4}
-        />
-        <StopMarkers stops={stops} />
-        {tracking && bus.position ? <BusMarker position={bus.position} /> : null}
-      </MapView>
+      {useNativeMap ? (
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFill}
+            initialRegion={initialRegion}
+            userInterfaceStyle="dark"
+            onMapReady={handleMapReady}
+            showsCompass={false}
+            showsPointsOfInterests={false}
+            toolbarEnabled={false}
+          >
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor={colors.accent.primary}
+              strokeWidth={4}
+            />
+            <StopMarkers stops={stops} />
+            {tracking && bus.position ? <BusMarker position={bus.position} /> : null}
+          </MapView>
+      ) : (
+        <RouteSchematic stops={stops} bus={tracking ? bus.position : null} />
+      )}
 
       <View style={[styles.header, { top: insets.top + spacing.lg }]} pointerEvents="box-none">
         {tracking ? (
