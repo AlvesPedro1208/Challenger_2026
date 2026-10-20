@@ -65,12 +65,7 @@ export function RouteSchematic({ stops, bus }: RouteSchematicProps) {
           </>
         ) : null}
       </Svg>
-      <View style={styles.notice} pointerEvents="none">
-        <Text style={styles.noticeText}>
-          Mapa simplificado: o Google Maps precisa de uma chave de API neste aparelho.
-        </Text>
       </View>
-    </View>
   );
 }
 
