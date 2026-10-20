@@ -26,7 +26,6 @@ import { countdownBetween, formatCountdown, formatTimeHM, isPastDeadline } from 
 import { HeroTripCard } from './HeroTripCard';
 import { RebookModal } from './RebookModal';
 import { RefundModal } from './RefundModal';
-
 import { RiskCard, type RiskResolution } from './RiskCard';
 
 export function HomeScreen() {
@@ -139,8 +138,8 @@ export function HomeScreen() {
             clockIso={clockIso}
             departureIso={trip.departureIso}
             trafficAlert={trafficAlert}
-            platformCurrent={currentPlatform}
-            showRoute={phase !== 'EN_ROUTE_TERMINAL'}
+            platform={currentPlatform}
+            showRouteAction={phase !== 'EN_ROUTE_TERMINAL'}
             routeVariant={mapVariant}
             onRebook={() => setRebookVisible(true)}
             onRefund={() => setRefundVisible(true)}
@@ -179,7 +178,6 @@ export function HomeScreen() {
     </Screen>
   );
 }
-
 
 type ArrivalCardProps = {
   city: string;

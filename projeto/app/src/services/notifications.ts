@@ -3,6 +3,7 @@
 // removeu o suporte a partir do SDK 53 e quebra a inicialização do app.
 // Criamos uma simulação segura para manter a aplicação 100% funcional no Expo Go.
 
+import { cityName } from '@/lib/place';
 import type { JourneySnapshot } from '@/state/store';
 import { useJourneyStore } from '@/state/store';
 
@@ -11,12 +12,6 @@ export interface JourneyNotification {
   key: string;
   title: string;
   body: string;
-}
-
-/** "Rio de Janeiro (Terminal Novo Rio)" -> "Rio de Janeiro". */
-function cityOf(destination: string): string {
-  const [city] = destination.split(' (');
-  return (city ?? destination).trim();
 }
 
 /**
@@ -72,7 +67,7 @@ export function diffNotifications(
       key: 'arrival',
       title: 'Boas-vindas ao destino',
       body: destination
-        ? `Chegada em ${cityOf(destination)} · veja recomendações para agora`
+        ? `Chegada em ${cityName(destination)} · veja recomendações para agora`
         : 'Você chegou ao destino · veja recomendações para agora',
     });
   }
@@ -87,13 +82,41 @@ const deliveredKeys = new Set<string>();
  * Never throws: a denied prompt or a missing module must not break the demo.
  */
 export async function initNotifications(): Promise<boolean> {
-  // Retorna sucesso de forma segura sem chamar a biblioteca nativa no Expo Go
-  return true;
+  try {
+    const Notifications = await loadNotifications();
+    if (!Notifications) return false;
+
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner : true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+
+    const current = await Notifications.getPermissionsAsync();
+    if (current.granted) return true;
+    if (!current.canAskAgain) return false;
+
+    const requested = await Notifications.requestPermissionsAsync();
+    return requested.granted;
+  } catch {
+    return false;
+  }
 }
 
 export async function presentNotification(notification: JourneyNotification): Promise<void> {
-  // Em modo demonstração no Expo Go, loga a notificação no console
-  console.log(`[Notificação simulada] ${notification.title}: ${notification.body}`);
+  try {
+    const Notifications = await loadNotifications();
+    if (!Notifications) {
+      return;
+    }
+    await Notifications.scheduleNotificationAsync({
+      content: { title: notification.title, body: notification.body },
+      trigger: null, 
+    });
+  } catch {}
 }
 
 /**

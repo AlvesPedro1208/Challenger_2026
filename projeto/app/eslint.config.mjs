@@ -40,7 +40,7 @@ export default defineConfig([
       ...complexityBudgetRules,
       // Exhaustive deps has a real false-positive rate; it nudges, never blocks.
       'react-hooks/exhaustive-deps': 'warn',
-      // Promoted once the skeleton dropped `useRef(new Animated .Value(x)).current`
+      // Promoted once the skeletons dropped `useRef(new Animated .Value(x)).current`
       // for `useState(() => new Animated.Value(x))`.
       'react-hooks/refs': 'error',
     },

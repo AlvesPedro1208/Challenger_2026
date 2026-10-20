@@ -4,11 +4,11 @@ import { Card, PrimaryButton, StatusPill } from '@/components/ui';
 import type { RiskState, TrafficAlertState } from '@/state/store';
 import { colors, spacing, typography } from '@/theme/tokens';
 
-import type { ArrivalCtaInput, ArrivalCtaVariant } from './arrivalCta';
+import type { ArrivalCtaVariant } from './arrivalCta';
 import { formatCountdown, formatTimeHM } from './format';
 import { planLeaveNow, type LeaveNowPlan } from './leaveNow';
 
-export type RiskResolution = 'rebooked' | 'refund' | 'leaving';
+export type RiskResolution = 'rebooked' | 'refunded' | 'leaving';
 
 type RiskCardProps = {
     risk: RiskState;
@@ -18,7 +18,7 @@ type RiskCardProps = {
     trafficAlert: TrafficAlertState | null;
     platform: string;
     showRouteAction: boolean;
-    routeVariant: ArrivalCtaInput;
+    routeVariant: ArrivalCtaVariant;
     onRebook: () => void;
     onRefund: () => void;
     onLeaveNow: () => void;
@@ -47,7 +47,7 @@ export function RiskCard({
             : null;
 
     return (
-        <Card style={StyleSheet.riskCard}>
+        <Card style={styles.riskCard}>
             <View style={styles.riskBar} />
             <Text style={styles.sectionLabel}>Risco de perder o embarque</Text>
             <Text style={styles.riskValue}>{risk.riskPct}%</Text>
@@ -72,7 +72,7 @@ export function RiskCard({
                             ? 'Remarcação solicitada'
                             : 'Cancelamento com reembolso solicitado'
                         }
-                        tone='success'
+                        tone="success"
                     />
                 ) : (
                     <View style={styles.riskActions}>
@@ -107,7 +107,7 @@ function marginLabel(plan: LeaveNowPlan, platform: string): string {
     }
     const margin = formatCountdown({
         totalMinutes: plan.marginMin,
-        hours: Math.floor(plan.merginMin / 60),
+        hours: Math.floor(plan.marginMin / 60),
         minutes: plan.marginMin % 60,
     });
     return plan.onTime
@@ -119,7 +119,7 @@ function LeaveNowSummary({
     plan,
     platform,
     showRouteAction,
-    RouteVariant,
+    routeVariant,
     onOpenMap,
     onReviewOptions,
 }: LeaveNowSummaryProps) {
@@ -132,7 +132,7 @@ function LeaveNowSummary({
             {plan ? (
                 <>
                     <Text style={styles.leaveTitle}>
-                        Chegada ao terminal às {formatTimeHM(plan.terminalArrivalIso)} - em{' '}
+                        Chegada ao terminal às {formatTimeHM(plan.terminalArrivalIso)} • em{' '}
                         {plan.etaToTerminalMin} min 
                     </Text>
                     <Text style={styles.riskHint}>{marginLabel(plan, platform)}</Text>
@@ -143,7 +143,7 @@ function LeaveNowSummary({
                 </Text>
             )}
             {showRouteAction ? (
-                <PrimaryButton label="Ver rota até o terminal" variant={RouteVariant} onPress={onOpenMap} />
+                <PrimaryButton label="Ver rota até o terminal" variant={routeVariant} onPress={onOpenMap} />
             ) : null}
             <GhostButton label="Rever opções" onPress={onReviewOptions} />
         </View>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     },
     riskValue: {
         fontSize: 56,
-        fontWight: '800',
+        fontWeight: '800',
         letterSpacing: -1,
         color: colors.accent.primary,
     },
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
         color: colors.text.secondary,
         lineHeight: 21,
     },
-    rickAction: {
+    riskAction: {
         gap: spacing.sm,
         marginTop: spacing.xs,
     },
