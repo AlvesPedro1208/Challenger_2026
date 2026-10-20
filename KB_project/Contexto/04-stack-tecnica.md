@@ -43,28 +43,26 @@ usam `typescript-eslint` puro. Todas as dependências de lint estão declaradas 
 
 - `error` para o que é sempre bug: `no-var`, `prefer-const`, `no-empty`,
   `no-undef` (só onde o compilador TS não cobre), `@typescript-eslint/no-unused-vars`
-  (opt-out por prefixo `_`), `react-hooks/rules-of-hooks` e o tier consciente de tipo
+  (opt-out por prefixo `_`), `react-hooks/rules-of-hooks`, `react-hooks/refs` e o tier consciente de tipo
   (`no-floating-promises`, `no-misused-promises`, `await-thenable`).
 - `warn` para pressão de refatoração: orçamento de complexidade/tamanho
   (`complexity` 12, `max-depth` 4, `max-statements` 20, `max-params` 4,
-  `max-lines-per-function` 150, `max-nested-callbacks` 3), `react-hooks/exhaustive-deps`
-  e `react-hooks/refs`.
+  `max-lines-per-function` 150, `max-nested-callbacks` 3) e `react-hooks/exhaustive-deps`.
 
 Regra nova **nunca** nasce bloqueando: entra como `warn`, a contagem é zerada, e só
 então é promovida a `error`. Formatação não é trabalho do ESLint e está fora de propósito.
 
-**Contagem atual de warnings** (medida em 30/08/2026, `npm run lint` sai com código 0):
+**Contagem atual de warnings** (medida em 19/10/2026, `npm run lint` sai com código 0):
 
 | Pacote | Warnings | Origem |
 |---|---|---|
-| `app` | 24 | 14 `react-hooks/refs` (3 sites do idioma `useRef(new Animated.Value(x)).current` nos skeletons, cada um reportado várias vezes pelo plugin), 6 `complexity`, 2 `max-statements`, 2 `max-lines-per-function` |
+| `app` | 10 | 6 `complexity`, 2 `max-statements`, 2 `max-lines-per-function` |
 | `demo-server` | 4 | 2 `max-statements`, 2 `complexity` |
 | `shared` | 1 | 1 `max-statements` |
-| **Total** | **29** | 0 errors |
+| **Total** | **15** | 0 errors |
 
-Candidato mais próximo de promoção: `react-hooks/refs` — bastam 3 edições mecânicas
-(`useRef(new Animated.Value(x)).current` → `const [x] = useState(() => new Animated.Value(x))`)
-para zerar 14 dos 29 warnings.
+`react-hooks/refs` zerado: os 3 skeletons trocaram `useRef(new Animated.Value(x)).current`
+por `const [ x ] = useState(() => new Animated.Value(x))`, e a regra foi promovida a `error`.
 
 ## Caminho do repositorio (decidido em 31/08/2026)
 

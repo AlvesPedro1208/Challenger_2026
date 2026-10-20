@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import type { Trip } from '@jornada/shared';
 
@@ -26,8 +26,7 @@ import { countdownBetween, formatCountdown, formatTimeHM, isPastDeadline } from 
 import { HeroTripCard } from './HeroTripCard';
 import { RebookModal } from './RebookModal';
 import { RefundModal } from './RefundModal';
-
-type RiskResolution = 'rebooked' | 'refunded';
+import { RiskCard, type RiskResolution } from './RiskCard';
 
 export function HomeScreen() {
   const router = useRouter();
@@ -68,6 +67,7 @@ export function HomeScreen() {
   }
 
   const onboard = phase === 'ONBOARD' || phase === 'ARRIVED';
+  const currentPlatform = platform.current ?? trip.platform;
   const allClear =
     !trafficAlert && !risk && !platform.pendingChange && bus.delayMin <= 0 && !onboard;
   const refundExpired = risk ? isPastDeadline(clockIso, risk.refundDeadlineIso) : false;
@@ -95,7 +95,7 @@ export function HomeScreen() {
             trip={trip}
             bus={bus}
             arrived={phase === 'ARRIVED'}
-            platform={platform.current ?? trip.platform}
+            platform={currentPlatform}
             mapVariant={mapVariant}
             onOpenMap={() => router.push('/map')}
           />
@@ -132,38 +132,21 @@ export function HomeScreen() {
 
       {risk ? (
         <View style={styles.section}>
-          <Card style={styles.riskCard}>
-            <View style={styles.riskBar} />
-            <Text style={styles.sectionLabel}>Risco de perder o embarque</Text>
-            <Text style={styles.riskValue}>{risk.riskPct}%</Text>
-            <Text style={styles.riskHint}>
-              Dá tempo de decidir agora: remarcar mantém o valor pago, cancelar devolve o
-              restante.
-            </Text>
-
-            {resolution ? (
-              <StatusPill
-                label={
-                  resolution === 'rebooked'
-                    ? 'Remarcação solicitada'
-                    : 'Cancelamento com reembolso solicitado'
-                }
-                tone="success"
-              />
-            ) : (
-              <View style={styles.riskActions}>
-                <PrimaryButton
-                  label="Remarcar passagem"
-                  disabled={!risk.canRebook}
-                  onPress={() => setRebookVisible(true)}
-                />
-                <GhostButton
-                  label="Cancelar com reembolso"
-                  onPress={() => setRefundVisible(true)}
-                />
-              </View>
-            )}
-          </Card>
+          <RiskCard
+            risk={risk}
+            resolution={resolution}
+            clockIso={clockIso}
+            departureIso={trip.departureIso}
+            trafficAlert={trafficAlert}
+            platform={currentPlatform}
+            showRouteAction={phase !== 'EN_ROUTE_TERMINAL'}
+            routeVariant={mapVariant}
+            onRebook={() => setRebookVisible(true)}
+            onRefund={() => setRefundVisible(true)}
+            onLeaveNow={() => setResolution('leaving')}
+            onReviewOptions={() => setResolution(null)}
+            onOpenMap={() => router.push('/map')}
+          />
         </View>
       ) : null}
 
@@ -193,25 +176,6 @@ export function HomeScreen() {
         </>
       ) : null}
     </Screen>
-  );
-}
-
-type GhostButtonProps = {
-  label: string;
-  onPress: () => void;
-};
-
-/** Secondary escape hatch: same 44pt target as PrimaryButton, none of its weight. */
-function GhostButton({ label, onPress }: GhostButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.ghostButton, pressed && styles.ghostPressed]}
-    >
-      <Text style={styles.ghostLabel}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -326,7 +290,7 @@ function OnboardSummaryCard({
 }
 
 function HomeSkeleton() {
-  const pulse = useRef(new Animated.Value(0.5)).current;
+  const [pulse] = useState(() => new Animated.Value(0.5));
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -399,49 +363,6 @@ const styles = StyleSheet.create({
   summaryValue: {
     ...typography.title,
     color: colors.accent.primary,
-  },
-  riskCard: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-    overflow: 'hidden',
-  },
-  riskBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: colors.accent.primary,
-  },
-  riskValue: {
-    fontSize: 56,
-    fontWeight: '800',
-    letterSpacing: -1,
-    color: colors.accent.primary,
-  },
-  riskHint: {
-    ...typography.body,
-    color: colors.text.secondary,
-    lineHeight: 21,
-  },
-  riskActions: {
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  ghostButton: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  ghostPressed: {
-    opacity: 0.6,
-  },
-  ghostLabel: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    textDecorationLine: 'underline',
   },
   skeletonCard: {
     backgroundColor: colors.bg.surface,

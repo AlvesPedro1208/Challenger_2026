@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { ErrorBoundary, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -10,6 +10,8 @@ import { connectToDemoServer } from '@/services/connection';
 import { initNotifications, startNotificationBridge } from '@/services/notifications';
 import { hydrateFromCache, startJourneyCachePersistence } from '@/state/persistence';
 import { colors } from '@/theme/tokens';
+
+export { ErrorBoundary };
 
 /** Short retry budget so auto-play takes over within seconds if the Wi-Fi is down. */
 const WS_MAX_ATTEMPTS = 3;
@@ -28,6 +30,7 @@ function useDemoBoot(): boolean {
 
   useEffect(() => {
     let cancelled = false;
+
     const cleanups: (() => void)[] = [startJourneyCachePersistence(), startNotificationBridge()];
 
     const boot = async (): Promise<void> => {
@@ -46,17 +49,14 @@ function useDemoBoot(): boolean {
           maxAttempts: WS_MAX_ATTEMPTS,
           retryIntervalMs: WS_BACKGROUND_RETRY_MS,
           onGiveUp: () => {
-            // Picks the script up at the act the store is already in, so a
-            // server lost mid-demo never rewinds the journey to the start.
             if (!cancelled) resumeAutoplay();
           },
           onReconnected: () => {
-            // Panel events are already flowing; drop the scripted fallback so
-            // the two never drive the store at once.
             if (!cancelled) stopAutoplay();
           },
         }),
       );
+
       void initNotifications();
     };
 
@@ -65,6 +65,7 @@ function useDemoBoot(): boolean {
     return () => {
       cancelled = true;
       stopAutoplay();
+      
       cleanups.forEach((cleanup) => cleanup());
     };
   }, []);
